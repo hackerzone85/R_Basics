@@ -49,9 +49,27 @@ rm(list=(c("Name", "WikiIndex")))
 OGHTML <- htmlParse(OGUrl)
 
 OG1 <- xpathApply(OGHTML, "//table/following-sibling::p", xmlValue)
-MiscText <- unlist(OG1[1:3])
-GOnesText <- OG1[[length(OG1)]]
+MiscText <- unlist(OG1[1])
+
 OGText = unlist(OG1[4:(length(OG1)-1)])
 
-#OGText needs tidying up to match OtherGods data.fram
-paste(OGText[41], OGText[42], OGText[43], sep = "\n ")
+OuterGParagraph <- paste(OGText[38]
+                     , OGText[39]
+                     , sep = "\n ")
+OuterGCatalog <- c(OGText[1:37]
+               , paste(OGText[38]
+                       , OGText[39]
+                       , OGText[40]
+                       , OGText[41]
+                       , sep = "\n ")
+               , OGText[42])
+
+ElderGParagraph <- paste(OGText[43]
+                             , OGText[44]
+                             , OGText[45]
+                             , sep = "\n ")
+
+ElderGCatalog <- c(OGText[46:55])
+
+OtherG$Description <- c(OuterGCatalog, ElderGCatalog)
+GOnesText <- OG1[[length(OG1)]]
