@@ -2,6 +2,7 @@ require(RCurl)
 require(XML)
 require(dplyr)
 
+# function for cleaning up vestiges of HTML origins
 cleanText <- function(HTMLTbl) {
 #   x <- HTMLTbl
      names(HTMLTbl) <- gsub("\\n", " " , names(HTMLTbl))
@@ -13,14 +14,13 @@ cleanText <- function(HTMLTbl) {
   HTMLTbl
 }
 
+# get Great Old One content from Wikipedia
 GOOUrl <- getURL("https://en.wikipedia.org/wiki/Cthulhu_Mythos_deities#Great_Old_Ones")
-
-GOO <- readHTMLTable(GOOUrl, which = 1, header = TRUE, trim = TRUE)
-
+GOO <- readHTMLTable(GOOUrl, which = 1, header = TRUE, trim = TRUE, stringsAsFactors = FALSE)
 GOO <- cleanText(GOO)
 
+# get Other God and misc content from Wikipedia
 OGUrl <- getURL("https://en.wikipedia.org/wiki/Cthulhu_Mythos_deities#List")
-
 OuterG <- readHTMLList(OGUrl, trim = TRUE, which = 3)
 ElderG <- readHTMLList(OGUrl, trim = TRUE, which = 4)
 Refs <- readHTMLList(OGUrl, trim = TRUE, which = 11)
@@ -29,6 +29,7 @@ Places <- readHTMLList(OGUrl, trim = TRUE, which = 15)
 Characs <- readHTMLList(OGUrl, trim = TRUE, which = 16)
 Deities <- readHTMLList(OGUrl, trim = TRUE, which = 17)
 Species <- readHTMLList(OGUrl, trim = TRUE, which = 18)
+
 
 OtherG <- data.frame(import =  c(OuterG, ElderG)
                      , category = c(rep("Outer", times = length(OuterG))
@@ -46,11 +47,13 @@ OtherG <- mutate(OtherG, name = Name, wikiIndex = WikiIndex) %>%
 
 rm(list=(c("Name", "WikiIndex")))
 
+# More content
 OGHTML <- htmlParse(OGUrl)
 
 OG1 <- xpathApply(OGHTML, "//table/following-sibling::p", xmlValue)
 MiscText <- unlist(OG1[1])
 
+# This has all the lists and semi structured information
 OGText = unlist(OG1[4:(length(OG1)-1)])
 
 OuterGParagraph <- paste(OGText[38]
@@ -72,4 +75,22 @@ ElderGParagraph <- paste(OGText[43]
 ElderGCatalog <- c(OGText[46:55])
 
 OtherG$Description <- c(OuterGCatalog, ElderGCatalog)
+
+
 GOnesText <- OG1[[length(OG1)]]
+# There is a Great Ones table that I want to extract.
+# Seems a bit tricky
+
+# text needs more cleaning up of special characters
+
+# word counting function
+findWords <- function(t) {
+  text <- strsplit(t, " ")
+  wordList <- list()
+  for (i in 1:length(text[[1]])) {
+    word <- text[[1]][i]
+    wordList[[word]] <- c(wordList[[word]],i)
+  }
+  return(wordList)
+}
+
