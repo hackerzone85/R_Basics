@@ -4,7 +4,6 @@ require(dplyr)
 
 # function for cleaning up vestiges of HTML origins
 cleanText <- function(HTMLTbl) {
-#   x <- HTMLTbl
      names(HTMLTbl) <- gsub("\\n", " " , names(HTMLTbl))
      for (i in names(HTMLTbl)) {
      HTMLTbl[[i]] <- gsub("\\n", " " , HTMLTbl[[i]])
@@ -81,16 +80,26 @@ GOnesText <- OG1[[length(OG1)]]
 # There is a Great Ones table that I want to extract.
 # Seems a bit tricky
 
-# text needs more cleaning up of special characters
-
 # word counting function
 findWords <- function(t) {
-  text <- strsplit(t, " ")
-  wordList <- list()
-  for (i in 1:length(text[[1]])) {
-    word <- text[[1]][i]
-    wordList[[word]] <- c(wordList[[word]],i)
-  }
+  text <- tolower(unlist(strsplit(gsub("[,.]+", "", t), " ")))
+  wordList <- split(1:length(text), text)
   return(wordList)
 }
+
+# sorting function
+sortWords <- function(wList, by = "alpha") {
+  if (by=="alpha") {
+    nms <- names(wList)
+    sn <- sort(nms)
+    return(wList[sn])
+  }
+  if (by=="freq") {
+    frq <- sapply(wList, length)
+    return(wList[order(frq, decreasing = TRUE)])
+  }
+}
+
+  
+  
 
