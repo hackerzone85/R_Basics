@@ -1,0 +1,39 @@
+---
+title: "Untitled"
+author: "Julian Hatwell"
+date: "January 11, 2016"
+output: html_document
+---
+```{r prologue, include=FALSE}
+library(knitr)
+library(stringr)
+
+# OUTPUT HOOK FOR TRUNCATING LONG CODE CHUNKS
+# capture the default output hook
+hook_output <- knit_hooks$get("output")
+
+# create a new hook to insert into the output chain
+knit_hooks$set(output = function(x, options) {
+  
+  # print everything by default
+  if (is.null(n <- options$out.lines)) {
+    hook_output(x, options)
+  } else {
+    x <- unlist(str_split(x, "\n")) 
+    if (length(x) > n) {
+      # truncate the output and paste first n lines together
+      x <- paste(c(head(x, n), ".... and so on\n"), collapse = "\n")    
+    }
+  }
+  # hand the lines back to the default output hook
+  hook_output(x, options)
+})
+```
+
+```{r}
+1:1000
+```
+
+```{r, out.lines=10}
+1:1000
+```
