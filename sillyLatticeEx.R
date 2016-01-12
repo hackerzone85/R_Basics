@@ -59,3 +59,17 @@ parallelplot(~Auto[, c(1,2,3,4,5,6,8,9)] | as.factor(year)
 
 for (v in dimnames(Boston)[[2]]) {assign(paste0("mn", v), mean(Boston[,v]))}
 mnBoston <- data.frame(crim = mncrim, zn = mnzn, indus = mnindus, chas = mnchas, nox = mnnox, rm = mnrm, age = mnage, dis = mndis, rad = mnrad, tax = mntax, ptratio = mnptratio, black = mnblack, lstat = mnlstat, medv = mnmedv)
+
+
+state.info <-
+  data.frame(name = state.name, area = state.x77[, "Area"],
+             long = state.center$x, lat = state.center$y,
+             population = 1000 * state.x77[, "Population"])
+state.info$density <- with(state.info, population / area)
+
+cloud(density ~ long + lat, state.info,
+      subset = !(name %in% c("Alaska", "Hawaii")),
+type = "h", lwd = 2, zlim = c(0, max(state.info$density)),
+scales = list(arrows = FALSE),
+par.settings =
+  list(axis.line = list(col = "transparent")))
