@@ -73,3 +73,18 @@ type = "h", lwd = 2, zlim = c(0, max(state.info$density)),
 scales = list(arrows = FALSE),
 par.settings =
   list(axis.line = list(col = "transparent")))
+
+
+source("https://raw.githubusercontent.com/julianhatwell/R_Themes/master/myFirstTheme.R")
+data("diamonds")
+bwplot(x~cut, data = diamonds
+       , groups = cut
+       , col = myPal.rangeContrasts(100)[c(10, 30, 50, 70, 90)]
+       , panel = panel.superpose
+       , panel.groups = panel.violin
+       , ylab = NULL
+       , xlab = NULL
+       , scales = list(y= list(draw = FALSE))
+       , par.settings = list(axis.text = list(font = 8, col = myPalDark[2])
+                             ,axis.line = list(col = "transparent")))
+
