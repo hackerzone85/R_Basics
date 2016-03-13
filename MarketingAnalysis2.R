@@ -104,4 +104,86 @@ scatterplotMatrix(formula = ~ age + credit.score + email +
         store.trans + store.spend
       , data=cust.df, diagonal = "histogram")
 
+library(gpairs)
+gpairs(cust.df[ , c(2:10)])
 
+cov(cust.df$age, cust.df$credit.score)
+cor(cust.df$age, cust.df$credit.score)
+# identical to:
+cov(cust.df$age, cust.df$credit.score) / 
+  (sd(cust.df$age)*sd(cust.df$credit.score))
+
+# test for signifance
+cor.test(cust.df$age, cust.df$credit.score)
+
+cor(cust.df[, c(2, 3, 5:12)])
+cor(cust.df[, c(2, 3, 5:12)]
+    , use = "complete.obs") # removes NA
+
+library(corrplot)
+library(gplots)
+corrplot.mixed(corr=cor(cust.df[ , c(2, 3, 5:12)]
+                        , use="complete.obs")
+               , upper="ellipse", tl.pos="lt", tl.srt=30
+               , col = colorpanel(50, "red", "gray60", "blue4"))
+
+
+
+# transformations are important
+cor(cust.df$distance.to.store, cust.df$store.spend)
+# relationship to inverse is much stronger
+cor(1/cust.df$distance.to.store, cust.df$store.spend)
+# stronger still when inverse square root
+cor(1/sqrt(cust.df$distance.to.store), cust.df$store.spend)
+
+plot(cust.df$distance.to.store, cust.df$store.trans)
+plot(1/sqrt(cust.df$distance.to.store), cust.df$store.trans)
+
+# discovering the best transformation
+library(car)
+powerTransform(cust.df$distance.to.store)
+
+lambda <- coef(powerTransform(cust.df$distance.to.store))
+bcPower(cust.df$distance.to.store, lambda)
+
+par(mfrow=c(1,2))
+hist(cust.df$distance.to.store
+     , xlab="Distance to Nearest Store"
+     , ylab="Count of Customers"
+     , main="Original Distribution")
+hist(bcPower(cust.df$distance.to.store
+             , lambda)
+     , xlab="Box-Cox Transform of Distance"
+     , ylab="Count of Customers"
+     , main="Transformed Distribution")
+par(mfrow=c(1,1))
+
+l.dist <- coef(powerTransform(
+  cust.df$distance.to.store))
+l.spend <- coef(powerTransform(
+  cust.df$store.spend+1))
+cor(bcPower(cust.df$distance.to.store
+            , l.dist)
+    , bcPower(cust.df$store.spend+1
+              , l.spend))
+
+# the power of jitter
+plot(cust.df$sat.service
+     , cust.df$sat.selection
+     , xlab="Customer Satisfaction with Service"
+     , ylab="Customer Satisfaction with Selection"
+     , main="Customers as of June 2014")
+
+plot(jitter(cust.df$sat.service)
+     , jitter(cust.df$sat.selection)
+     , xlab="Customer Satisfaction with Service"
+     , ylab="Customer Satisfaction with Selection"
+     , main="Customers as of June 2014")
+
+library(psych) # polychoric for ordinal scales
+resp <- !is.na(cust.df$sat.service)
+cor(cust.df$sat.service[resp]
+    , cust.df$sat.selection[resp])
+
+polychoric(cbind(cust.df$sat.service[resp]
+                 , cust.df$sat.selection[resp]))
