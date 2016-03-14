@@ -124,3 +124,84 @@ GOF
 
 sum(chisq)  # chi-square value
 pchisq(sum(chisq), df = nrow(tab) - 2, lower.tail = FALSE)
+
+# sax.fit
+data("Saxony", package = "vcd")
+Sax_fit <- goodfit(Saxony, type = "binomial")
+unlist(Sax_fit$par) # estimated parameters
+names(Sax_fit)     # components of "goodfit" objects
+Sax_fit            # print method
+summary(Sax_fit)   # summary method
+
+# Fed and plots
+data("Federalist", package = "vcd")
+Fed_fit0 <- goodfit(Federalist, type = "poisson")
+unlist(Fed_fit0$par)
+Fed_fit0
+summary(Fed_fit0)
+
+Fed_fit1 <- goodfit(Federalist, type = "nbinomial")
+unlist(Fed_fit1$par)
+summary(Fed_fit1)
+
+plot(Fed_fit0, scale = "raw", type = "standing")
+plot(Fed_fit0, type = "standing")
+plot(Fed_fit0, type = "hanging", shade = TRUE)
+plot(Fed_fit0, type = "deviation", shade = TRUE)
+
+plot(Fed_fit1, scale = "raw", type = "standing")
+plot(Fed_fit1, type = "standing")
+plot(Fed_fit1, type = "hanging", shade = TRUE)
+plot(Fed_fit1, type = "deviation", shade = TRUE)
+
+# atrocious fits on butterfly
+data("Butterfly", package = "vcd")
+But_fit1 <- goodfit(Butterfly, type = "poisson")
+But_fit2 <- goodfit(Butterfly, type = "nbinomial")
+plot(But_fit1, main = "Poisson", shade = TRUE, legend = FALSE)
+plot(But_fit2, main = "Negative binomial", shade = TRUE, legend = FALSE)
+
+# ord plots
+ord <- Ord_plot(Butterfly,
+                main = "Butterfly species collected in Malaya",
+                gp = gpar(cex = 1), pch = 16)
+ord
+
+data("HorseKicks", package = "vcd")
+nk <- as.vector(HorseKicks)
+k <- as.numeric(names(HorseKicks))
+nk1 <- c(NA, nk[-length(nk)])
+y <- k * nk / nk1
+weight <- sqrt(pmax(nk, 1) - 1)
+(ord_df <- data.frame(k, nk, nk1, y, weight))
+coef(lm(y ~ k, weights = weight, data = ord_df))
+
+Ord_plot(Federalist, main = "Instances of 'may' in Federalist Papers",
+         gp = gpar(cex = 1), pch = 16)
+
+Ord_plot(WomenQueue, main = "Women in queues of length 10",
+         gp=gpar(cex=1), pch=16)
+
+data("HorseKicks", package = "vcd")
+dp <- distplot(HorseKicks, type = "poisson",
+               xlab = "Number of deaths"
+               , main = "Poissonness plot: HorseKicks data")
+print(dp, digits = 4)
+
+# leveled version, specifying lambda
+distplot(HorseKicks, type = "poisson", lambda = 0.61,
+         xlab = "Number of deaths"
+         , main = "Leveled Poissonness plot")
+
+plot(goodfit(Saxony, type = "binomial"
+             , par = list(size=12)), 
+     shade=TRUE, legend=FALSE,
+     xlab = "Number of males")
+
+distplot(Saxony, type = "binomial", size = 12,
+         xlab = "Number of males")
+
+distplot(Federalist, type = "poisson"
+         , xlab = "Occurrences of 'may'")
+distplot(Federalist, type = "nbinomial"
+         , xlab = "Occurrences of 'may'")
