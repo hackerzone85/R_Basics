@@ -108,3 +108,19 @@ xyplot(prob ~ k | n + p, data = nbin_df,
        type = c("h", "p"), pch = 16, lwd = 2,
        strip = strip.custom(strip.names = TRUE)
 )
+
+# goodness-of-fit test
+tab <- as.data.frame(HorseKicks, stringsAsFactors = FALSE)
+colnames(tab) <- c("nDeaths", "Freq")
+str(tab)
+(lambda <- weighted.mean(as.numeric(tab$nDeaths), w = tab$Freq))
+
+phat <- dpois(0 : 4, lambda = lambda)
+exp <- sum(tab$Freq) * phat
+chisq <- (tab$Freq - exp)^2 / exp
+
+GOF <- data.frame(tab, phat, exp, chisq)
+GOF
+
+sum(chisq)  # chi-square value
+pchisq(sum(chisq), df = nrow(tab) - 2, lower.tail = FALSE)
