@@ -16,3 +16,5 @@ Diff <- Weldon_df$Freq - Exp
 Chisq <- Diff^2/Exp
 data.frame(Weldon_df, prob = round(Pk, 5), Exp, Diff, Chisq)
 
+b2 <- barplot(Weldon_df$Freq)
+lines(x = b2, y = Exp, col = "red")
