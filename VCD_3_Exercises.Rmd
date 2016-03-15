@@ -9,7 +9,7 @@ knitr::opts_chunk$set(warning = FALSE
 require(vcd)
 require(lattice)
 require(directlabels)
-require(gridExtra)
+require(lmtest)
 ```
 
 # Visualising Categorical Data
@@ -214,3 +214,117 @@ distplot(Federalist, type = "nbinomial", size = 1
 distplot(Federalist, type = "nbinomial", main = "negative binomialness plot")
 ```
 
+#### Exercise 3.6 Mosteller and Wallace (1963, Table 2.4) give the frequencies, nk, of counts k = 0, 1, … of other selected marker words in 247 blocks of text known to have been written by Alexander Hamilton. The data below show the occurrences of the word upon, that Hamilton used much more than did James Madison.
+
+(a)	Read these data into R and construct a one-way table of frequencies of counts or a matrix or data frame with frequencies in the first column and the corresponding counts in the second column, suitable for use with goodfit().
+
+```{r, echo = TRUE}
+count <- 0:5
+Freq <- c(129, 83, 20, 9, 5, 1)
+```
+
+```{r}
+upon <- data.frame(Freq, count)
+```
+
+(b)	Fit and plot the Poisson model for these frequencies.
+
+```{r}
+upon.gf.pois <- goodfit(upon, type = "poisson")
+summary(upon.gf.pois)
+plot(upon.gf.pois, shade = TRUE)
+```
+
+(c)	Fit and plot the negative binomial model for these frequencies.
+
+```{r}
+upon.gf.nbin <- goodfit(upon, type = "nbinomial")
+summary(upon.gf.nbin)
+plot(upon.gf.nbin, shade = TRUE)
+```
+
+(d)	What do you conclude?
+
+*Negative binomial seems to be a better model as the heavier tail lines up better with frequencies of counts 2 and 4.*
+
+#### Exercise 3.7 The data frame Geissler in the vcdExtra package contains the complete data from Geissler's (1889) tabulation of family sex composition in Saxony.
+
+(a)	Read these data into R.
+
+```{r, echo = TRUE}
+data("Geissler", package = "vcdExtra")
+Saxony11 <- subset(Geissler, size==11, select=c(boys, Freq))
+rownames(Saxony11) <- NULL
+Saxony11 <- xtabs(Freq~boys, Saxony11)
+```
+
+(b)	Following Example 3.13, use goodfit() to fit the binomial model and plot the results. Is there an indication that the binomial does not fit these data?
+
+```{r}
+Sax.11.gof <- goodfit(Saxony11, type = "binomial")
+summary(Sax.11.gof)
+plot(Sax.11.gof, shade = TRUE)
+```
+
+*There is evidence of a lack of fit as these data have heavier tails than the binomial distribution*
+
+(c)	Diagnose the form of the distribution using the methods described in Section 3.4.
+
+```{r}
+Ord_plot(Saxony11)
+```
+
+*The ord plot suggests that the binomial is the correct model. However an ord plot has not completely robust and only chooses from 4 options.*
+
+(d)	Try fitting the negative binomial distribution, and use distplot () to diagnose whether the negative binomial is a reasonable fit.
+
+```{r, eval=FALSE}
+# not sure why this isn't working
+Sax.11.gof <- goodfit(Saxony11, type = "nbinomial")
+summary(Sax.11.gof)
+plot(Sax.11.gof, shade = TRUE)
+```
+
+#### Exercise 3.8 The data frame Bundesliga gives a similar data set to that for UK soccer scores (UKSoccer) examined in Example 3.9, but over a wide range of years. The following lines calculate a two-way table, BL1995, of home-team and away-team goals for the 306 games in the year 1995.
+
+```{r, echo = TRUE}
+data("Bundesliga", package = "vcd")
+BL1995 <- xtabs(~HomeGoals + AwayGoals, data = Bundesliga, subset = (Year == 1995))
+BL1995
+```
+
+(a)	As in Example 3.9, find the one-way distributions of HomeGoals, AwayGoals, and TotalGoals = HomeGoals + AwayGoals.
+
+```{r}
+BL1995.df <- as.data.frame(BL1995, stringsAsFactors = FALSE)
+BL1995.df <- within(BL1995.df, {
+  HomeGoals <- as.numeric(HomeGoals)       # make numeric
+  AwayGoals <- as.numeric(AwayGoals)       # make numeric
+  Total <- HomeGoals + AwayGoals           # total goals
+})
+
+BL1995.df <- expand.dft(BL1995.df)   # expand to ungrouped form
+apply(BL1995.df, 2, FUN = function(x) c(mean = mean(x), var = var(x)))
+```
+
+(b)	Use goodfit() to fit and plot the Poisson distribution to each of these. Does the Poisson seem to provide a reasonable fit?
+
+```{r}
+H <- goodfit(BL1995.df$HomeGoals)
+A <- goodfit(BL1995.df$AwayGoals)
+plot(H, shade = TRUE)
+plot(A, shade = TRUE)
+```
+
+*Poisson model appears to be a good fit in both cases, though notice a very slight anomaly at away goals 6.
+
+(c)	Use distplot() to assess fit of the Poisson distribution.
+
+```{r}
+distplot(apply(BL1995, 1, sum))
+distplot(apply(BL1995, 2, sum))
+```
+
+(d)	What circumstances of scoring goals in soccer might cause these distributions to deviate from Poisson distributions?
+
+*If a player is sent off, it might cause lambda to increase during the course of the game. Likewise there may be a tipping point, once a team has scored 4 goals to a low opposition score, the opposition team might cave in and allow further additional goals than might be expected. These are all factors related to people and the psychology of the game that might easily detract from a theoretical model.*
