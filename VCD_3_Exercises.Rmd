@@ -9,6 +9,7 @@ knitr::opts_chunk$set(warning = FALSE
 require(vcd)
 require(lattice)
 require(directlabels)
+require(gridExtra)
 ```
 
 # Visualising Categorical Data
@@ -37,8 +38,6 @@ with(Arbuthnot, {
        pos = 3, col = "red")
   })
 ```
-
-
 
 ```{r}
 with(Arbuthnot, {
@@ -71,7 +70,7 @@ with(Arbuthnot, {
 
 *There is a linear increasing trend which is interrupted for almost two decades, presumably by plague. There is a second unexpected dip at around 1705.*
 
-#### Exercise 3.2 Use the graphical methods illustrated in Section 3.2 to plot a collection of geometric distributions for p = 0.2, 0.4, 0.6, 0.8, over a range of values of k = 0, 1, … 10.
+#### Exercise 3.2 Use the graphical methods illustrated in Section 3.2 to plot a collection of geometric distributions for p = 0.2, 0.4, 0.6, 0.8, over a range of values of k = 0, 1, ..., 10.
 
 (a)	With xyplot(), try the different plot formats using points connected with lines, as in Figure 3.9, or using points and lines down to the origin, as in the panels of Figure 3.10.
 
@@ -120,3 +119,98 @@ plt <- xyplot(prob ~ k | probs, data = geom_df, groups = probs,
 library(directlabels)
 direct.label(plt, list("top.points", cex = 1.5, dl.trans(y = y + 0.1)))
 ```
+
+#### Exercise 3.3 Use the data set WomenQueue to:
+
+(a)	Produce plots analogous to those shown in Section 3.1 (some sort of bar graph of frequencies).
+
+*First a basic bar plot of the observed frequencies*
+
+```{r}
+data("WomenQueue", package = "vcd")
+barplot(WomenQueue, col = "lightblue", cex.lab = 1.5
+        , xlab = "Number of women"
+        , ylab = "Number of queues"
+        , main = "Basic plot of Frequency Distribution")
+```
+
+(b)	Check for goodness-of-fit to the binomial distribution using the goodfit () methods described in Section 3.3.2.
+
+```{r}
+WQ <- goodfit(WomenQueue, type = "binomial")
+unlist(WQ$par)
+WQ
+summary(WQ)
+```
+
+(c)	Make a reasonable plot showing departure from the binomial distribution.
+
+```{r}
+plot(WQ, type = "hanging", shade = TRUE)
+```
+
+(d)	Suggest some reasons why the number of women in queues of length 10 might depart from a binomial distribution, Bin(n = 10, p = 1/2).
+
+*The estimated p = unlist(WQ$par)[1] They may have chivalrous boyfriends who offer to queue for them, or they may have a lower tolerance for queueing (i.e. they see a queue and turn away)*
+
+#### Exercise 3.4 Continue Example 3.13 on the distribution of male children in families in Saxony by fitting a binomial distribution, Bin(n = 12, p = 1/2) specifying equal probability for boys and girls. [Hint: you need to specify both size and prob values for goodfit().]
+
+(a)	Carry out the GOF test for this fixed binomial distribution. What is the ratio of $\frac{\chi^2}{df}$? What do you conclude?
+
+```{r}
+data("Saxony", package = "vcd")
+SX <- goodfit(Saxony, type = "binomial", par = list(prob = 0.5, size = 12))
+sumSX <- summary(SX)
+```
+
+*The ratio of $\frac{\chi^2}{df}$ is $\frac{ `r round(sumSX[1,1],4)` }{ `r sumSX[1,2]` } = `r round(sumSX[1,1]/sumSX[1,2],4) `$*
+
+*This is well above the rule of thumb 2.5 indicating a very poor fit to the binomial distribution, Bin(n = 12, p = 1/2). The p values is also approximately zero.*
+
+(b)	Test the additional lack of fit for the model Bin(n = 12, p = $\hat{p}$)  compared to the model Bin(n = 12, p = $\hat{p}$) where $\hat{p}$ is estimated from the data.
+
+*The model fit and estimated from the data is:*
+
+```{r}
+Sax_fit <- goodfit(Saxony, type = "binomial")
+unlist(Sax_fit$par) # estimated parameters
+```
+
+(c)	Use the plot.gootfit () method to visualize these two models.
+
+```{r}
+plot(SX, shade = TRUE, main = "p = 0.5")
+plot(Sax_fit, shade = TRUE, main = expression(paste("p = ", hat(p))))
+```
+
+#### Exercise 3.5 For the Federalist data, the examples in Section 3.3.1 and Section 3.3.2 showed the negative binomial to provide an acceptable fit. Compare this with the simpler special case of geometric distribution, corresponding to n = 1.
+
+(a)	Use goodfit() to fit the geometric distribution. [Hint: use type="nbinomial", but specify size=1 as a parameter.]
+
+```{r}
+Fed_fitg <- goodfit(Federalist, type = "nbinomial", par = list(size = 1))
+unlist(Fed_fitg$par)
+sumFg <- summary(Fed_fitg)
+```
+
+(b)	Compare the negative binomial and the geometric models statistically, by a likelihood-ratio test of the difference between these two models.
+
+```{r}
+Fed_fitn <- goodfit(Federalist, type = "nbinomial")
+unlist(Fed_fitn$par)
+sumFn <- summary(Fed_fitn)
+
+pchisq(sumFg[1]-sumFn[1], df = sumFg[2]-sumFn[2], lower.tail = FALSE)
+```
+
+(c)	Compare the negative binomial and the geometric models visually by hanging rootograms or other methods.
+
+```{r}
+plot(Fed_fitg, shade = TRUE, main = "geometric model")
+plot(Fed_fitn, shade = TRUE, main = "negative binomial model")
+
+distplot(Federalist, type = "nbinomial", size = 1
+         , main = "geometricness plot")
+distplot(Federalist, type = "nbinomial", main = "negative binomialness plot")
+```
+
