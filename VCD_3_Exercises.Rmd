@@ -7,6 +7,7 @@ knitr::opts_chunk$set(warning = FALSE
 
 ```{r setup}
 require(vcd)
+require(vcdExtra)
 require(lattice)
 require(directlabels)
 require(lmtest)
