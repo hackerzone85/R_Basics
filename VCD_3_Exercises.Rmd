@@ -423,3 +423,56 @@ distplot(CyclingDeaths.tab)
 (d)	Write a one-paragraph summary of the results of these analyses and your conclusions.
 
 *Based on the rule of thumb for the ratio of $\frac{\chi^2}{df} \approx 2.5$ in the goodness of fit test, a poisson model would seem to be a reasonable fit. The two plots again show a reasonable fit although there is potentially a quirk at occurences = 2, which falls short compared to the model.*
+
+#### Exercise 3.11 * The one-way table, Depends, in vcdExtra and shown below gives the frequency distribution of the number of dependencies declared in 4,983 R packages maintained on the CRAN distribution network on January 17, 2014. That is, there were 986 packages that had no dependencies, 1,347 packages that depended on one other package, ...up to 2 packages that depended on 14 other packages.
+
+```{r, echo = TRUE}
+data("CyclingDeaths", package = "vcdExtra")
+```
+
+(a)	Make a bar plot of this distribution.
+
+```{r}
+barplot(Depends, ylab = "Number of Packages"
+        , xlab = "Number of Dependencies"
+        , main = "Number of Package Dependencies
+        for Packages on CRAN, January 17, 2014")
+```
+
+
+(b)	Use Ord_plot () to see if this method can diagnose the form of the distribution.
+
+```{r}
+Ord_plot(Depends)
+```
+
+
+(c)	Try to fit a reasonable distribution to describe dependencies among R packages.
+
+*To start with the Ord plot has given no diagnosis. There is a significant outlier at 12 dependencies, and a loss of linearity which is not visible in the bar plot, so it would be interesting to see if this feature is visible at log scale.*
+
+```{r}
+barplot(log(Depends), ylab = "log(Number) of Packages"
+        , xlab = "Number of Dependencies"
+        , main = "Number of Package Dependencies
+        for Packages on CRAN, January 17, 2014"
+        )
+```
+
+*Indeed there is a visible kink at freq 12 and 13 that don't seem to follow the trend. Does the Ord plot do better at log scale?*
+
+```{r}
+Ord_plot(log(Depends))
+```
+
+*The outlier contiunues to be influential and there is a loss of linearity for the Ord plot of log(dependencies). It's not all that helpful.*
+
+*A hypothesis based on increasing frequency of depencencies as a trend over time. Over the years, developers build on the previous work of others and the possibility/probability of re-use of older packages increases. This would suggest a negative binomial distribution.*
+
+```{r}
+Dep.gof <- goodfit(Depends, type = "nbinom")
+plot(Dep.gof, shade = TRUE)
+distplot(Depends, type= "nbinom")
+```
+
+*The rootogram and dist plot show some support, but there are still some shortcomings to investigate further.
