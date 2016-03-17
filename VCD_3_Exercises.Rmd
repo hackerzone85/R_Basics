@@ -467,7 +467,7 @@ Ord_plot(log(Depends))
 
 *The outlier contiunues to be influential and there is a loss of linearity for the Ord plot of log(dependencies). It's not all that helpful.*
 
-*A hypothesis based on increasing frequency of depencencies as a trend over time. Over the years, developers build on the previous work of others and the possibility/probability of re-use of older packages increases. This would suggest a negative binomial distribution.*
+*A hypothesis based on increasing frequency of depencencies as a trend over time. Over the years, developers build on the previous work of others and the possibility/probability of re-use of older packages increases. This would suggest s distribution with a non-constant $\lambda$ such as the negative binomial.*
 
 ```{r}
 Dep.gof <- goodfit(Depends, type = "nbinom")
@@ -475,4 +475,36 @@ plot(Dep.gof, shade = TRUE)
 distplot(Depends, type= "nbinom")
 ```
 
-*The rootogram and dist plot show some support, but there are still some shortcomings to investigate further.
+*The rootogram and dist plot show some support, but there are still shortcomings to investigate further, especially in the tail region.*
+
+#### Exercise 3.12 * How many years does it take to get into the baseball Hall of Fame? The Lahman (Friendly, 2014b) package provides a complete record of historical baseball statistics from 1871 to the present. One table, HallOfFame, records the history of players nominated to the Baseball Hall of Fame, and those eventually inducted. The table below, calculated in help(HallOfFame, package=“Lahman”), records the distribution of the number of years taken (from first nomination) for the 109 players in the Hall of Fame to be inducted (1936–present). Note that years==0 does not, and cannot, occur in this table, so the distribution is restricted to positive counts. Such distributions are called zero-truncated distributions. Such distributions are like the ordinary ones, but with the probability of zero being zero. Thus the other probabilities are scaled up (i.e., divided by 1 – Pr(Y = 0)) so they sum to 1.
+
+ (a)	For the Poisson distribution, show that the zero-truncated probability function can be expressed in the form
+
+(b)	Show that the mean is λ/(1 – exp(–λ)).
+
+(c)	Enter these data into R as a one-way table, and use goodfit () to fit the standard Poisson distribution, as if you hadn't encountered the problem of zero truncation.
+
+```{r}
+years <- c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)
+inducted <- c(46,10,8,7,8,4,2,4,6,3,3,1,4,1,2)
+HoF <- matrix(c(inducted,years), nrow = 15, ncol = 2)
+HoF
+HoF.gof <- goodfit(HoF, type = "poisson")
+plot(HoF.gof, shade = TRUE)
+```
+
+*The graph looks like a terrible fit. The zero truncation is an important phenomenon to address when fitting a model to this data.*
+
+```{r}
+years <- c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15) -1
+inducted <- c(46,10,8,7,8,4,2,4,6,3,3,1,4,1,2)
+HoF <- matrix(c(inducted,years), nrow = 15, ncol = 2)
+HoF
+HoF.gof <- goodfit(HoF, type = "poisson")
+plot(HoF.gof, shade = TRUE)
+```
+
+*The data have been simply shifted but this doesn't alter the shape of the fit, which is very poor.*
+
+*If the mean is $\frac{\lambda}{(1-\exp^{-\lambda})}$*
