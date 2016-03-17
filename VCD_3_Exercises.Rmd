@@ -507,4 +507,12 @@ plot(HoF.gof, shade = TRUE)
 
 *The data have been simply shifted but this doesn't alter the shape of the fit, which is very poor.*
 
-*If the mean is $\frac{\lambda}{(1-\exp^{-\lambda})}$*
+```{r}
+HoF.gof <- goodfit(HoF, type = "nbinom")
+summary(HoF.gof)
+plot(HoF.gof, shade = TRUE)
+distplot(HoF, type = "nbinom")
+```
+
+*Again, the negative binomial is a much better fit.*
+
