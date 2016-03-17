@@ -329,3 +329,97 @@ distplot(apply(BL1995, 2, sum))
 (d)	What circumstances of scoring goals in soccer might cause these distributions to deviate from Poisson distributions?
 
 *If a player is sent off, it might cause lambda to increase during the course of the game. Likewise there may be a tipping point, once a team has scored 4 goals to a low opposition score, the opposition team might cave in and allow further additional goals than might be expected. These are all factors related to people and the psychology of the game that might easily detract from a theoretical model.*
+
+*Perhaps another explanation is where teams have very different ability, making $\lambda$ non-constant among the observations.*
+
+#### Exercise 3.9 * Repeat the exercise above, this time using the data for all years in which there was the standard number (306) of games, that is for Year>1965, tabulated as shown below.
+
+```{r, echo = TRUE}
+data("Bundesliga", package = "vcd")
+BL <- xtabs(~HomeGoals + AwayGoals, data = Bundesliga, subset = (Year > 1965))
+BL
+```
+
+```{r}
+BL.df <- as.data.frame(BL, stringsAsFactors = FALSE)
+BL.df <- within(BL.df, {
+  HomeGoals <- as.numeric(HomeGoals)       # make numeric
+  AwayGoals <- as.numeric(AwayGoals)       # make numeric
+  Total <- HomeGoals + AwayGoals           # total goals
+})
+
+BL.df <- expand.dft(BL.df)   # expand to ungrouped form
+apply(BL.df, 2, FUN = function(x) c(mean = mean(x), var = var(x)))
+```
+
+*There is a marked difference between the mean and the var HomeGoals, slight in AwayGoals and consequently TotalGoals also has a marked difference. This would indicate perhaps something other than a poisson model.*
+
+"So, the mean and variance of the Poisson distribution are always the same, which is sometimes used to identify a distribution as Poisson. For the binomial distribution, the mean (Np) is always greater than the variance (Npq); for other distributions (negative binomial and geometric) the mean is less than the variance."
+
+*Friendly, Michael. Discrete Data Analysis with R. Chapman and Hall/CRC, 20151211.*
+
+```{r}
+H <- goodfit(BL.df$HomeGoals)
+A <- goodfit(BL.df$AwayGoals)
+plot(H, shade = TRUE)
+plot(A, shade = TRUE)
+```
+
+*The rootograms reflect the above supposition. There is a somewhat poor fit with poisson.*
+
+```{r}
+distplot(apply(BL, 1, sum))
+distplot(apply(BL, 2, sum))
+```
+
+*Here the dist plots do not reveal any problem with the poisson model.*
+
+```{r}
+Ord_plot(as.table(apply(BL, 1, sum)))
+Ord_plot(as.table(apply(BL, 2, sum)))
+```
+
+*However, the Ord plots are suggesting a negative binomial is a better fit.*
+
+```{r}
+H <- goodfit(BL.df$HomeGoals, type = "nbinomial")
+A <- goodfit(BL.df$AwayGoals, type = "nbinomial")
+plot(H, shade = TRUE)
+plot(A, shade = TRUE)
+```
+
+*Indeed, negative binomial appears to be a much better fit. This implies a non-contant $\lambda$ among the observations, which could perhaps be explained by trending changes in rules, gameplay and strategies over the years.*
+
+#### Exercise 3.10 Using the data CyclingDeaths introduced in Example 3.6 and the one-way frequency table CyclingDeaths.tab = table(CyclingDeaths$deaths),
+
+(a)	Make a sensible plot of the number of deaths overtime. For extra credit, add a smoothed curve (e.g., using lines(lowess(.))).
+
+```{r}
+data("CyclingDeaths", package = "vcdExtra")
+CyclingDeaths.tab = table(CyclingDeaths$deaths)
+oldpar <- par()
+par(mar = c(4,4,1,2))
+plot(CyclingDeaths, type = "l", col = "lightgrey")
+axis(4, at = round(c(0, exp(c(0,1,2))),1), col = "blue", col.ticks = "blue", col.axis = "blue")
+lines(loess.smooth(CyclingDeaths$date, exp(CyclingDeaths$deaths), span = 0.1, degree = 1), col = "blue")
+text(max(xy.coords(CyclingDeaths)$x) + 75, 2.4, pos = 2, "deaths (trend)", col = "blue")
+par(oldpar)
+```
+
+(b)	Test the goodness of fit of the table CyclingDeaths.tab to a Poisson distribution statistically using goodfit().
+
+```{r}
+CD.gof <- goodfit(CyclingDeaths.tab, type = "poisson")
+summary(CD.gof)
+```
+
+(c)	Continue this analysis using a rootogram () and distplot ().
+
+```{r}
+plot(CD.gof, shade = TRUE)
+distplot(CyclingDeaths.tab)
+```
+
+(d)	Write a one-paragraph summary of the results of these analyses and your conclusions.
+
+*Based on the rule of thumb for the ratio of $\frac{\chi^2}{df} \approx 2.5$ in the goodness of fit test, a poisson model would seem to be a reasonable fit. The two plots again show a reasonable fit although there is potentially a quirk at occurences = 2, which falls short compared to the model.*
