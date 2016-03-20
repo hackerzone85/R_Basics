@@ -114,3 +114,95 @@ pass.m3 <- glm(Pass ~ Promo + Channel + Promo:Channel
 summary(pass.m3)
 exp(coef(pass.m3))
 exp(confint(pass.m3))
+
+#hierarchical lm
+conjoint.df <- read.csv("http://goo.gl/G8knGV")
+conjoint.df$speed <- factor(conjoint.df$speed)
+conjoint.df$height <- factor(conjoint.df$height)
+summary(conjoint.df)
+
+# manual creation of sim data
+set.seed(12814)
+resp.id <- 1:200
+nques <- 16
+speed <- sample(as.factor(c("40", "50", "60", "70"))
+                , size=nques, replace=TRUE)
+height <- sample(as.factor(c("200", "300", "400"))
+                 , size=nques, replace=TRUE)
+const <- sample(as.factor(c("Wood", "Steel"))
+                , size= nques, replace=TRUE)
+theme <- sample(as.factor(c("Dragon", "Eagle"))
+                , size=nques, replace=TRUE)
+
+profiles.df <- data.frame(speed, height, const, theme)
+profiles.model <- model.matrix(~ speed + height + const + theme
+                               , data=profiles.df)
+library(MASS)
+weights <- mvrnorm(length(resp.id)
+                   , mu=c(-3, 0.5, 1, 3, 2, 1, 0, -0.5)
+                   , Sigma=diag(c(0.2, 0.1, 0.1, 0.1, 0.2, 0.3, 1, 1)))
+
+conjoint.df <- NULL
+for (i in seq_along(resp.id)) {
+  # create one respondent’s ratings of the 16 items, plus error
+  utility <- profiles.model %*% weights[i, ] + rnorm(16) # preference
+  rating <- as.numeric(cut(utility, 10)) # put on a 10-point scale
+  conjoint.resp <- cbind(resp.id=rep(i, nques)
+                         , rating, profiles.df)
+  conjoint.df <- rbind(conjoint.df, conjoint.resp)
+}
+
+summary(conjoint.df)
+
+# example group means
+by(conjoint.df$rating, conjoint.df$height, mean)
+
+# plain lm
+ride.lm <- lm(rating ~ speed + height + const + theme
+              , data=conjoint.df)
+summary(ride.lm)
+
+# We estimate an overall rating for this most-desired coaster
+# it would be the intercept+speed70+height300
+#(steel and dragon are included in the intercept)
+#, or 3.07+4.49+2.94 = 10.46 points on our 10-point rating scale. 
+# But wait! That’s not possible; our scale is capped at 10 points. 
+# This shows that simply interpreting 
+# the “average” result can be misleading. 
+# The coefﬁcients are estimated on the basis of designs 
+# that mostly combine both desirable and undesirable attributes,
+# and are not as reliable at the extremes of preference.
+# Additionally,it could happen that few people prefer that exact
+# combination even though the individual features are each
+# best on average. 
+
+library(lme4)
+ride.hlm1 <- lmer(rating ~ speed + height + const + theme + 
+                    (1 | resp.id)
+                  , data=conjoint.df)
+summary(ride.hlm1)
+fixef(ride.hlm1)
+head(ranef(ride.hlm1)$resp.id)
+head(coef(ride.hlm1)$resp.id)
+
+# this take several minutes
+ride.hlm2 <- lmer(rating ~ speed + height + const + theme +
+                    (speed + height + const + theme | resp.id)
+                  , data=conjoint.df
+                  , control=lmerControl(optCtrl=list(maxfun=100000)))
+
+fixef(ride.hlm2) + ranef(ride.hlm2)$resp.id[196, ]
+
+# Bayesian approach
+library(MCMCpack)
+set.seed(97439)
+ride.mc1 <- MCMCregress(rating ~ speed + height + const + theme
+                        , data=conjoint.df)
+summary(ride.mc1)
+
+set.seed(97439)
+ride.mc2 <- MCMChregress(fixed = rating ~ speed + height + const + theme
+                         , random = ~ speed + height + const + theme
+                         , group="resp.id"
+                         , data=conjoint.df
+                         , r=8, R=diag(8))
