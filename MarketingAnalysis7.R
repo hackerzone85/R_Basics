@@ -1,6 +1,7 @@
 library(lavaan)
 library(semTools)
 library(semPlot)
+library(lattice)
 piesSimData <- read.csv("http://goo.gl/yT0XwJ")
 summary(piesSimData)
 
@@ -90,3 +91,63 @@ Repeat =~ r1 + r2 + r3"
 
 satAlt.fit <- sem(satAltModel, data=satSimData, std.lv=TRUE)
 compareFit(sat.fit, satAlt.fit, nested=TRUE)
+
+# PLS fit - less robust but works well for smaller samples
+set.seed(90704)
+satSimData2 <- satSimData[sample(nrow(satSimData), 50), ]
+describe(satSimData2)
+
+# CB sem fails because not enough data
+sat.fit2 <- sem(satModel, data= satSimData2, std.lv=TRUE)
+summary(sat.fit2, fit.measures=TRUE)
+# note different syntax
+satPLSmm <- matrix(c(
+  "Quality", "q1",
+  "Quality", "q2",
+  "Quality", "q3",
+  "Cost", "c1",
+  "Cost", "c2",
+  "Cost", "c3",
+  "Value", "v1",
+  "Value", "v2",
+  "Value", "v3",
+  "CSat", "cs1",
+  "CSat", "cs2",
+  "CSat", "cs3",
+  "Repeat", "r1",
+  "Repeat", "r2",
+  "Repeat", "r3" ), ncol=2, byrow=TRUE)
+
+satPLSsm <- matrix(c(
+  "Quality", "CSat",
+  "Quality", "Value",
+  "Cost", "Value",
+  "Cost", "Repeat",
+  "Value", "CSat",
+  "CSat", "Repeat" ), ncol=2, byrow=TRUE)
+
+library(semPLS)
+satPLS.mod <- plsm(data=satSimData2, strucmod=satPLSsm, measuremod=satPLSmm)
+satPLS.fit <- sempls(model=satPLS.mod, data=satSimData2)
+plsLoadings(satPLS.fit)
+pathCoeff(satPLS.fit)
+rSquared(satPLS.fit)
+# see book for plotting
+
+# bootstrapping a validated result
+set.seed(04460)
+satPLS.boot <- bootsempls(satPLS.fit, nboot=500, start="ones")
+
+parallelplot(satPLS.boot, reflinesAt = 0, alpha=0.8,
+             varnames=attr(satPLS.boot$t, "path")[16:21],
+             main="Path coefficients in 500 PLS bootstrap iterations (N=50)")
+
+# now the full data set
+satPLS.modF <- plsm(data=satSimData, strucmod=satPLSsm, measuremod=satPLSmm)
+satPLS.fitF <- sempls(model=satPLS.mod, data=satSimData)
+pathCoeff(satPLS.fitF)
+set.seed(04460)
+satPLS.bootF <- bootsempls(satPLS.fitF, nboot=500, start="ones")
+parallelplot(satPLS.bootF, reflinesAt = 0, alpha=0.8,
+             varnames=attr(satPLS.bootF$t, "path")[16:21],
+             main="Path coefficients in 500 PLS bootstrap iterations (N=200)")
