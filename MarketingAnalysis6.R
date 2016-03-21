@@ -232,3 +232,33 @@ hist(ride.speed60$statistics[,1]
 
 summary(ride.mc2$mcmc[,c("beta.constWood", "VCV.constWood.constWood"
                          , "beta.speed60","VCV.speed60.speed60")])
+
+par(mfrow=c(2,2))
+plot.xlim <- c(-2, 2) # define limits for the x-axis
+# first four parameters only, for convenience
+for (i in 2:5) {
+  # plot the MCMC density for random effect i
+  mcmc.col <- which(grepl(".196", colnames(ride.mc2$mcmc)
+                          , fixed=TRUE))[i]
+  plot(density(ride.mc2$mcmc[ , mcmc.col])
+       , xlab="", ylim=c(0, 1.4), xlim=plot.xlim
+       , main=paste("HB & lmer density:"
+                    , colnames(ride.mc2$mcmc)[mcmc.col] ))
+  # add the HLM density for random effect i
+  hlm2.est <- ranef(ride.hlm2)$resp.id[196, i] # mean estimate
+  hlm2.sd <- sqrt(attr(ranef(ride.hlm2, condVar=TRUE)$resp.id
+                       , "postVar")[ , , 196][i, i])
+  seq.pts <- seq(from=plot.xlim[1]
+                 , to=plot.xlim[2]
+                 , length.out=1000) # range
+  # .. find density at x-axis points using dnorm()
+  # and add that to the plot
+  points(seq.pts, dnorm(seq.pts
+                        , mean=hlm2.est
+                        , sd=hlm2.sd)
+         , col="red", pch=20, cex=0.05)
+  legend("topright"
+         , legend=c("red = lmer", "black = HB")
+         , text.col=c("red", "black"))
+}
+par(mfrow = c(1,1))
