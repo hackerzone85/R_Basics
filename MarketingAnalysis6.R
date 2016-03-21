@@ -206,3 +206,29 @@ ride.mc2 <- MCMChregress(fixed = rating ~ speed + height + const + theme
                          , group="resp.id"
                          , data=conjoint.df
                          , r=8, R=diag(8))
+str(ride.mc2)
+summary(ride.mc2$mcmc[ , grepl(".196", colnames(ride.mc2$mcmc), fixed=TRUE)])
+
+summary(ride.mc2$mcmc[ ,1:8])
+
+ride.constWood <- summary(ride.mc2$mcmc[ 
+  , grepl("b.constWood"
+  , colnames(ride.mc2$mcmc))] + 
+    ride.mc2$mcmc[ , "beta.constWood"])
+
+hist(ride.constWood$statistics[,1]
+     , main="Preference for Wood vs. Steel"
+     , xlab="Rating points", ylab="Count of Respondents"
+     , xlim=c(-4,4))
+
+ride.speed60 <- summary(ride.mc2$mcmc[,
+                                      grepl("b.speed60"
+                                            , colnames(ride.mc2$mcmc))] +
+                        ride.mc2$mcmc[,"beta.speed60"])
+hist(ride.speed60$statistics[,1]
+     , main="Preference for 60 vs. 40,mph"
+     , xlab="Rating points", ylab="Count of Respondents"
+     , xlim=c(-4,4))
+
+summary(ride.mc2$mcmc[,c("beta.constWood", "VCV.constWood.constWood"
+                         , "beta.speed60","VCV.speed60.speed60")])
