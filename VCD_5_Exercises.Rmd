@@ -1,0 +1,157 @@
+```{r prologue, results='hide', echo=FALSE}
+knitr::opts_chunk$set(warning = FALSE
+                      , message = FALSE
+                      , echo = FALSE
+                      )
+```
+
+```{r setup}
+require(vcd)
+require(vcdExtra)
+require(MASS)
+```
+
+---
+title: "Discrete Data Analysis with R - Lab 5"
+author: "Julian Hatwell"
+date: "22 March 2016"
+output: html_document
+---
+
+## 5.1
+The data set criminal in the package logmult gives the 4 × 5 table below of the number of men aged 15–19 charged with a criminal case for whom charges were dropped in Denmark from 1955–1958.
+
+```{r}
+data("criminal", package = "logmult")
+criminal
+```
+
+(a) Use loglm() to test whether there is an association between Year and Age. Is there evidence that dropping of charges in relation to age changed over the years recorded here?
+
+```{r}
+llm.crim <- loglm(~ Age + Year, data = criminal)
+llm.crim
+residuals(llm.crim)
+```
+
+*There is a moderately strong association shown by the likelihood ratio test.*
+
+*Glancing at the residuals, it appears as though younger individuals have become more likely to have charges dropped over the years.*
+
+(b)	Use mosaic() with the option shade=TRUE to display the pattern of signs and magnitudes of the residuals. Compare this with the result of mosaic() using “Friendly shading,” from the option gp=shading_Friendly. Describe verbally what you see in each regarding the pattern of association in this table.
+
+```{r}
+mosaic(criminal, shade = TRUE)
+mosaic(criminal, gp = shading_Friendly)
+```
+
+*The mosaic with shad = TRUE shows a very modest opposite corner effect. This is expected from the residuals which never exceed $\abs{2.485}$. However, the trend toward more lenient treatment of younger individuals can be detected in the shape of the plot.*
+
+*The friendly shading scheme shows the same basic pattern and in addition the sign of all the residuals is revealed, emphasising the opposite corner effect, even though the residuals a small or not significant.*
+
+## 5.2
+The data set AirCrash in vcdExtra gives a database of all crashes of commercial airplanes between 1993–2015, classified by Phase of the flight and Cause of the crash. How can you best show is the nature of the association between these variables in a mosaic plot? Start by making a frequency table, aircrash.tab:
+
+```{r}
+data("AirCrash", package = "vcdExtra")
+aircrash.tab <- xtabs(Fatalities ~ Phase + Cause, data = AirCrash)
+```
+
+ (a)	Make a default mosaic display of the data with shade=TRUE and interpret the pattern of the high-frequency cells.
+
+(b)	The default plot has overlapping labels due to the uneven marginal frequencies relative to the lengths of the category labels. Experiment with some of the labeling_args options (abbreviate, rot_labels, etc.) to see if you can make the plot more readable. Hint: a variety of these are illustrated in Section 4.1 of vignette(“strucplot”)
+
+(c)	The levels of Phase and Cause are ordered alphabetically (because they are factors). Experiment with other orderings of the rows/columns to make interpretation clearer, e.g., ordering Phase temporally or ordering both factors by their marginal frequency.
+ 
+```{r, echo=TRUE}
+aircrash.tab <- aircrash.tab[c(4,2,1,3,5),
+                             c(4,2,3,5,1)
+                             ]
+
+mosaic(aircrash.tab, shade = TRUE
+       , rot_labels = c(45, 0, 0, 0)
+       , offset_labels = c(1, 0, 0, 1)
+       , offset_varnames = c(2, 0, 0, 1)
+       )
+```
+
+*It is clear that different causes of crashes are most frequent at different phases of the flight. Human error and mechanical are common at take off. Criminal acts appear to be exceptionally common en-route. Human and weather are worst offenders on landing.*
+
+## 5.3 
+The Lahman package contains comprehensive data on baseball statistics for Major League Baseball from 1871 through 2012. For all players, the Master table records the handedness of players, in terms of throwing (L, R) and batting (B, L, R), where B indicates “both.” The table below was generated using the following code:
+
+```{r, echo=TRUE}
+data("Master", package = "Lahman")
+basehands <- with(Master, table(throws, bats))
+```
+
+•	Construct mosaic displays showing the relation of batting and throwing handedness, split first by batting and then by throwing.
+
+```{r}
+mosaic(throws~bats, data = basehands, gp = shading_Friendly2)
+
+mosaic(bats~throws, data = basehands, gp = shading_Friendly2)
+```
+
+•	From these displays, what can be said about players who throw with their left or right hands in terms of their batting handedness? (Friendly 217)
+
+*Players tend to throw and bat with the same hand in a very strong association.*
+
+## 5.4
+A related analysis concerns differences in throwing handedness among baseball players according to the fielding position they play. The following code calculates such a frequency table.
+
+```{r}
+data("Fielding", package = "Lahman")
+MasterFielding <- data.frame(merge(Master, Fielding, by = "playerID"))
+throwpos <- with(MasterFielding, table(POS, throws))
+```
+
+(a)	Make a mosaic display of throwing hand vs. fielding position.
+
+```{r}
+mosaic(t(throwpos), shade = TRUE
+       , rot_labels = c(90, 0, 0, 0))
+```
+
+(b)	Calculate the percentage of players throwing left-handed by position. Make a sensible graph of this data.
+
+```{r}
+round(prop.table(throwpos, margin = 1)[,1] * 100, 2)
+doubledecker(throwpos[, 2:1])
+```
+
+(c)	Re-do the mosaic display with the positions sorted by percentage of left-handers.
+
+```{r}
+mosaic(t(throwpos[order(prop.table(throwpos                                   , margin = 1)[,1]),])
+       , shade = TRUE
+       , rot_labels = c(90, 0, 0, 0))
+```
+
+(d)	Is there anything you can say about positions that have very few left-handed players?
+
+*I don't know much about baseball, but I am guessing that 2B and 3B are corners around the diamond. SS could be short stop. These are all positions that are very close range of play and there may be something to do with the fact that the batter will be running clockwise around the diamond.*
+
+## 5.5 
+For the Bartlett data described in Example 5.12, fit the model of no three-way association, H4 in Table 5.2.
+
+(a)	Summarize the goodness of fit for this model, and compare to simpler models that omit one or more of the two-way terms.
+
+```{r}
+data("Bartlett", package = "vcdExtra")
+llm.BT <- loglm(~ Alive * Time + Alive * Length + Time * Length, data = Bartlett)
+llm.BT_a <- loglm(~ Time * Alive + Length * Alive, data = Bartlett)
+llm.BT_b <- loglm(~ Time * Length + Alive, data = Bartlett)
+LRstats(llm.BT, llm.BT_a, llm.BT_b)
+anova(llm.BT_b, llm.BT_a, llm.BT, test = "chisq")
+```
+
+(b)	Use a mosaic-like display to show the lack of fit for this model.
+
+```{r, echo=TRUE}
+mosaic(Bartlett, expected = as.formula(llm.BT), shade = TRUE)
+mosaic(Bartlett, expected = as.formula(llm.BT_a), shade = TRUE)
+mosaic(Bartlett, expected = as.formula(llm.BT_b), shade = TRUE)
+```
+
+*From these mosaic plots, it can be seen that the best fit is the model of no three way interaction.*
