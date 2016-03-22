@@ -80,99 +80,79 @@ mosaic(haireye2, gp = shading_Friendly, legend = legend_fixed)
 set.seed(1234)
 mosaic(haireye2, gp = shading_max)
 
-## ----art-setup-----------------------------------------------------------
 art <- xtabs(~ Treatment + Improved, data = Arthritis,
              subset = Sex == "Female")
 names(dimnames(art))[2] <- "Improvement"
 
-## ----arth-mosaic, h=6, w=6, out.width='.49\\textwidth', cap="Mosaic plots for the female patients in the \\code{Arthritis} data. Left: Fixed shading levels via \\code{shading\\_Friendly}; right: shading levels determined by significant maximum residuals via \\code{shading\\_max}."----
+# this shading, not so significant
 mosaic(art, gp = shading_Friendly, margin = c(right = 1),
        labeling = labeling_residuals, suppress = 0, digits = 2)
+
+# this chi sq test
+chisq.test(art) # very significant
+residuals(chisq.test(art))
+
+# shading max calls coindep_test(art)
+coindep_test(art) # generates 1000 random tables with same margins
+# Finally, the 0.90 and 0.99 quantiles
+# of the simulation distribution are used
+# as shading levels, passed as the value
+# of the interpolate argument.
+set.seed(1243)
+art_max <- coindep_test(art)
+art_max$residuals
+art_max$qdist(c(0.90, 0.99))
+
 set.seed(1234)
 mosaic(art, gp = shading_max, margin = c(right = 1))
 
-## ----arth-residuals------------------------------------------------------
-residuals(chisq.test(art))
-
-## ----arth-max------------------------------------------------------------
-set.seed(1243)
-art_max <- coindep_test(art)
-art_max
-
-## ----arth-quantiles------------------------------------------------------
-art_max$qdist(c(0.90, 0.99))
-
-## ----soccer-chisq--------------------------------------------------------
 data("UKSoccer", package = "vcd")
-CMHtest(UKSoccer)
+CMHtest(UKSoccer) # no significant association
 
-## ----UKsoccer-mosaic, h=6, w=6, out.width='.6\\textwidth', cap='Mosaic display for UK soccer scores, highlighting one cell that stands out for further attention.'----
 set.seed(1234)
 mosaic(UKSoccer, gp = shading_max, labeling = labeling_residuals,
-       digits = 2)
+       digits = 2) # one cell stands out for further attention
 
-## ----HEC-mos1b, h=6, w=6, out.width='.7\\textwidth', cap='Three-way mosaic for hair color, eye color, and sex.', fig.pos='!htb'----
 HEC <- HairEyeColor[, c("Brown", "Hazel", "Green", "Blue"),]
-mosaic(HEC, rot_labels = c(right = -45))
+mosaic(HEC, rot_labels = c(right = -45)) 
+# seems like there are slightly too many blue/blonde female
 
-## ----ch5-loglm1, eval=FALSE----------------------------------------------
-## loglin(mytable, margin = list(1, 2))
+# fitting the log linear models
+loglm(~ Hair + Eye, data = haireye) # strong lack of fit
 
-## ----ch5-loglm2, eval=FALSE----------------------------------------------
-## loglin(mytable, margin = list(c(1, 2)))
-
-## ----ch5-loglm3, eval=FALSE----------------------------------------------
-## loglm(~ A + B, data = mytable)
-
-## ----ch5-loglm4, eval=FALSE----------------------------------------------
-## loglm(~ A + B + A : B, data = mytable)
-## loglm(~ A * B, data = mytable)
-
-## ------------------------------------------------------------------------
-loglm(~ Hair + Eye, data = haireye)
-
-## ------------------------------------------------------------------------
+# are hair and eye jointly independent of sex?
 HE_S <- loglm(~ Hair * Eye + Sex, data = HairEyeColor)
 HE_S
+residuals(HE_S, type = "pearson") # not significant
 
-## ----eval=FALSE----------------------------------------------------------
-## residuals(HE_S, type = "pearson")
-
-## ----HEC-mos1, h=6, w=6, out.width='.7\\textwidth', cap='Three-way mosaic for hair color, eye color, and sex. Residuals from the model of joint independence, [HE][S] are shown by shading.', fig.pos='!htb'----
 HEC <- HairEyeColor[, c("Brown", "Hazel", "Green", "Blue"),]
 mosaic(HEC, expected = ~ Hair * Eye + Sex,
        labeling = labeling_residuals,
        digits = 2, rot_labels = c(right = -45))
 
-## ----HEC-mos2, h=6, w=6, out.width='.49\\textwidth', cap="Mosaic displays for other models fit to the data on hair color, eye color, and sex.  Left: Mutual independence model; right: Conditional independence of hair color and eye color given sex."----
 abbrev <- list(abbreviate = c(FALSE, FALSE, 1))
 mosaic(HEC, expected = ~ Hair + Eye + Sex, labeling_args = abbrev,
        main = "Model: ~ Hair + Eye + Sex")
 mosaic(HEC, expected = ~ Hair * Sex + Eye * Sex, labeling_args = abbrev,
        main="Model: ~ Hair*Sex + Eye*Sex")
 
-## ----HEC-loglm1----------------------------------------------------------
-library(MASS)
 # three types of independence:
 mod1 <- loglm(~ Hair + Eye + Sex, data = HEC)       # mutual
 mod2 <- loglm(~ Hair * Sex + Eye * Sex, data = HEC) # conditional
 mod3 <- loglm(~ Hair * Eye + Sex, data = HEC)       # joint
 LRstats(mod1, mod2, mod3)
 
-## ----HEC-loglm2----------------------------------------------------------
 anova(mod1)
 anova(mod1, mod2, mod3, test = "chisq")
 
-## ----HEC-seq1, h=6, w=6, echo=FALSE, fig.show='hide'---------------------
+# independent model of [hair][eye][sex]
 mosaic(HEC, expected = ~ Hair + Eye + Sex, legend = FALSE, labeling_args = abbrev, main = "Mutual")
-
-## ----HEC-seq2, h=6, w=6, echo=FALSE, fig.show='hide'---------------------
+# independent model of [hair][eye]
 mosaic(~ Hair + Eye, data = HEC, shade = TRUE, legend = FALSE, main = "Marginal")
-
-## ----HEC-seq3, h=6, w=6, echo=FALSE, fig.show='hide'---------------------
+# joint model of [hair eye][sex]
 mosaic(HEC, expected = ~ Hair * Eye + Sex, legend = FALSE, labeling_args = abbrev, main = "Joint")
 
-## ----seq-functions-------------------------------------------------------
+# independence modeling
 for(nf in 2 : 5) {
   print(loglin2string(joint(nf, factors = LETTERS[1:5])))
 }
@@ -183,24 +163,19 @@ for(nf in 2 : 5) {
 for(nf in 2 : 5) {
   print(loglin2formula(conditional(nf, factors = LETTERS[1:5])))
 }
-
-## ----seq-functions2------------------------------------------------------
+# applied to a atable
 loglin2formula(joint(3, table = HEC))
 loglin2string(joint(3, table = HEC))
 
-## ------------------------------------------------------------------------
 HEC.mods <- seq_loglm(HEC, type = "joint")
 LRstats(HEC.mods)
 
-## ----presex1-------------------------------------------------------------
 data("PreSex", package = "vcd")
 structable(Gender + PremaritalSex + ExtramaritalSex ~ MaritalStatus, 
            data = PreSex)
 
-## ----presex-reorder------------------------------------------------------
 PreSex <- aperm(PreSex, 4 : 1)   # order variables G, P, E, M
 
-## ----presex2, h=6, w=6, out.width='.49\\textwidth', cap='Mosaic displays for the first two marginal tables in the PreSex data. Left: Gender and premarital sex; right: fitting the model of joint independence with extramarital sex, [GP][E].'----
 # (Gender Pre)
 mosaic(margin.table(PreSex, 1 : 2), shade = TRUE,
        main = "Gender and Premarital Sex")
@@ -210,10 +185,9 @@ mosaic(margin.table(PreSex, 1 : 3),
        expected = ~ Gender * PremaritalSex + ExtramaritalSex,
        main = "Gender*Pre + ExtramaritalSex")
 
-## ----presex-odds---------------------------------------------------------
+# odds ration for men and women is the same
 loddsratio(margin.table(PreSex, 1 : 3), stratum = 1, log = FALSE)
 
-## ----presex3, h=6, w=6, out.width='.49\\textwidth', cap='Four-way mosaics for the PreSex data. The left panel fits the model [GPE][M]. The pattern of residuals suggests other associations with marital status. The right panel fits the model [GPE][PEM].'----
 ## (Gender Pre Extra)(Marital)
 mosaic(PreSex,
        expected = ~ Gender * PremaritalSex * ExtramaritalSex
@@ -225,38 +199,33 @@ mosaic(PreSex,
        + MaritalStatus * PremaritalSex * ExtramaritalSex,
        main = "G*P*E + P*E*M")
 
-## ----employ1, size = "footnotesize"--------------------------------------
 data("Employment", package = "vcd")
 structable(Employment)
 
-## ----employ2-------------------------------------------------------------
+# baseline model [A][BC]
 loglm(~ EmploymentStatus + EmploymentLength * LayoffCause, 
       data = Employment)
 
-## ----employ-mos1, h=6, w=6, out.width='.6\\textwidth', cap='Mosaic display for the employment status data, fitting the baseline model of joint independence.'----
-# baseline model [A][BC]
 mosaic(Employment, shade = TRUE,
        expected = ~ EmploymentStatus + EmploymentLength * LayoffCause,
        main = "EmploymentStatus + Length * Cause")
 
-## ----employ3-------------------------------------------------------------
+# conditional model [AC][BC]
 loglm(~ EmploymentStatus * LayoffCause + EmploymentLength * LayoffCause,
       data = Employment)
 
-## ----employ-mos2, h=6, w=6, out.width='.6\\textwidth', cap='Mosaic display for the employment status data, fitting the model of conditional independence, [AC][BC].', scap='Mosaic display for the employment status data, fitting the model of conditional independence'----
 mosaic(Employment, shade = TRUE, gp_args = list(interpolate = 1 : 4),
        expected = ~ EmploymentStatus * LayoffCause + 
          EmploymentLength * LayoffCause,
        main = "EmploymentStatus * Cause + Length * Cause")
 
-## ----employ4-------------------------------------------------------------
+# creating a list of formulas, note the literal margin in apply.
 mods.list <-
   apply(Employment, "LayoffCause",
         function(x) loglm(~ EmploymentStatus + EmploymentLength, 
                           data = x))
 mods.list
 
-## ----employ-mos3, h=6, w=6, out.width='.49\\textwidth', cap='Mosaic displays for the employment status data, with separate panels for cause of layoff.', fig.pos="htb"----
 mosaic(Employment[,,"Closure"], shade = TRUE, 
        gp_args = list(interpolate = 1 : 4),
        margin = c(right = 1), main = "Layoff: Closure")
