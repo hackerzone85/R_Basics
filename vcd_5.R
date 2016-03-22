@@ -264,16 +264,14 @@ mods.list <- apply(pun, c("Age", "Education"),
 mosaic(~ Memory + Attitude | Age + Education, data = pun,
        shade = TRUE, gp_args = list(interpolate = 1 : 4))
 
-## ----bartlett-pairs, h=8, w=8, out.width='.8\\textwidth', cap='Mosaic pairs plot for the Bartlett data. Each panel shows the bivariate marginal relation between the row and column variables.', fig.pos='!htb'----
+# mosaic matrix
 pairs(Bartlett, gp = shading_Friendly2)
 
-## ----marital-pairs,h=8, w=8, out.width='.8\\textwidth', cap='Mosaic pairs plot for the PreSex data. Each panel shows the bivariate marginal relation between the row and column variables.', fig.pos='!htb'----
 data("PreSex", package = "vcd")
 pairs(PreSex, gp = shading_Friendly2, space = 0.25,
       gp_args = list(interpolate = 1 : 4), 
       diag_panel_args = list(offset_varnames = -0.5))
 
-## ----berk-pairs1, h=8, w=8, out.width='.8\\textwidth', cap='Mosaic matrix of the UCBAdmissions data showing bivariate marginal relations.', fig.pos='htb'----
 largs <- list(labeling = labeling_border(varnames = FALSE,
                                          labels = c(T, T, F, T), alternate_labels = FALSE))
 dargs <- list(gp_varnames = gpar(fontsize = 20), offset_varnames = -1,
@@ -282,15 +280,12 @@ pairs(UCBAdmissions, shade = TRUE, space = 0.25,
       diag_panel_args = dargs,
       upper_panel_args = largs, lower_panel_args = largs)
 
-## ----berk-pairs2, h=8, w=8, out.width='.8\\textwidth', cap='Generalized mosaic matrix of the UCBAdmissions data. The above-diagonal plots fit models of joint independence; below-diagonal plots fit models of mutual independence.', fig.pos='!htb'----
 pairs(UCBAdmissions, space = 0.2,
       lower_panel = pairs_mosaic(type = "joint"),
       upper_panel = pairs_mosaic(type = "total"))
 
-## ----berk-pairs3, eval=FALSE---------------------------------------------
-## pairs(UCBAdmissions, type = "conditional", space = 0.2)
+pairs(UCBAdmissions, type = "conditional", space = 0.2)
 
-## ----arth-gpairs, h=8, w=8, out.width='.9\\textwidth', cap='Generalized pairs plot of the Arthritis data. Combinations of categorical and quantitative variables can be rendered in various ways.', fig.pos='!htb'----
 library(gpairs)
 data("Arthritis", package = "vcd")
 gpairs(Arthritis[,c(5, 2, 3, 4)],
@@ -298,10 +293,9 @@ gpairs(Arthritis[,c(5, 2, 3, 4)],
        mosaic.pars = list(gp = shading_Friendly,
                           gp_args = list(interpolate = 1 : 4)))
 
-## ----mos3d1, eval=FALSE--------------------------------------------------
-## mosaic3d(Bartlett)
+mosaic3d(Bartlett)
 
-## ----struc1--------------------------------------------------------------
+# a simulation to show visualisation of models
 struc <- array(c(6, 10, 312, 44,
                  37, 31, 192, 76),
                dim = c(2, 2, 2),
@@ -312,73 +306,48 @@ struc <- array(c(6, 10, 312, 44,
 struc <- as.table(struc)
 structable(struc)
 
-## ----struc-mos1, h=6, w=6, out.width='.6\\textwidth', cap='Mosaic display for the data on age, sex, and disease. Observed frequencies are shown in the plot, and residuals reflect departure from the model of mutual independence.', fig.pos="!b"----
 mosaic(struc, shade = TRUE)
-
-## ----struc-mos2, h=6, w=6, out.width='.5\\textwidth', cap='Mosaic display for the data on age, sex, and disease, using expected frequencies under mutual independence.'----
 mosaic(struc, type = "expected")
 
-## ----struc2--------------------------------------------------------------
 mutual <- loglm(~ Age + Sex + Disease, data = struc, fitted = TRUE)
 fit <- as.table(fitted(mutual))
 structable(fit)
-
-## ----struc-mos3, h=8, w=8, out.width='.8\\textwidth', cap='Mosaic matrix for fitted values under mutual independence.  In all panels the joint frequencies conform to the one-way margins.', fig.pos='!htb'----
 pairs(fit, gp = shading_Friendly2, type = "total")
+mosaic3d(fit)
 
-## ----code-mos3d1, eval=FALSE---------------------------------------------
-## mosaic3d(fit)
-
-## ----struc3--------------------------------------------------------------
 joint <- loglm(~ Age * Sex + Disease, data = struc, fitted = TRUE)
 fit <- as.table(fitted(joint))
 structable(fit)
-
-## ----struc-mos4, h=8, w=8, out.width='.7\\textwidth', cap='Mosaic matrix for fitted values under joint independence for the model [Age Sex][Disease].', scap='Mosaic matrix for fitted values under joint independence.', fig.pos='!htb'----
 pairs(fit, gp = shading_Friendly2)
 
-## ----sec-related, child='ch05/related.Rnw'-------------------------------
-
-## ----berkeley-doubledecker, w=10, h=4, out.width='\\textwidth', cap='Doubledecker plot for the UCBAdmissions data.', fig.pos='htb'----
 doubledecker(Admit ~ Dept + Gender, data = UCBAdmissions[2:1, , ])
-
-## ----titanic-doubledecker, w=12, h=4, out.width='\\textwidth', cap='Doubledecker plot for the Titanic data.'----
 doubledecker(Survived ~ Class + Age + Sex, Titanic)
 
-## ----pun1, R.options=list(digits=3)--------------------------------------
+# odds ratio diagrams
 data("Punishment", package = "vcd")
 pun_lor <- loddsratio(Freq ~ memory + attitude | age + education, 
                       data = Punishment)
-
-## ----pun2, R.options=list(digits=3)--------------------------------------
 pun_lor_df <- as.data.frame(pun_lor)
 
-## ----pun-lor-plot, h=4, w=5, out.width='.7\\textwidth', cap='Log odds ratio for the association between attitude and memory of corporal punishment, stratified by age and education. Error bars show $\\pm 1$ standard error.', scap='Log odds ratio for the association between attitude and memory of corporal punishment, stratified by age and education', fig.pos="H"----
 plot(pun_lor)
-
-## ----pun-anova0, echo=FALSE----------------------------------------------
 pun_lor_df <- transform(pun_lor_df, 
                         age = as.numeric(age), 
                         education = as.numeric(education))
 
-## ----pun-anova-----------------------------------------------------------
 pun_mod <- lm(LOR ~ age * education, data = pun_lor_df, 
               weights = 1 / ASE^2)
 anova(pun_mod)
 
-## ----titanic-lor1--------------------------------------------------------
 Titanic2 <- Titanic[, , 2:1, 2:1]
 Titanic2["Crew", , "Child", ] <- NA
 titanic_lor1 <- loddsratio(~ Survived + Age | Class + Sex, 
                            data = Titanic2)
 titanic_lor1
 
-## ----titanic-lor2--------------------------------------------------------
 titanic_lor2 <- loddsratio(~ Survived + Sex | Class + Age, 
                            data = Titanic2)
 titanic_lor2
 
-## ----titanic-lor-plot, echo=FALSE, h=6, w=6, out.width='0.49\\textwidth', cap='Log odds ratio plots for the Titanic data. Left: Odds ratios for survival and age, by sex and class. Right: for survival and sex, by age and class. Error bars show $\\pm 1$ standard error.', scap='Log odds ratio plots for the Titanic data.'----
 plot(titanic_lor1)
 plot(titanic_lor2)
 
