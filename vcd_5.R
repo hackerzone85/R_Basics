@@ -233,11 +233,9 @@ mosaic(Employment[,,"Replaced"], shade = TRUE,
        gp_args = list(interpolate = 1 : 4),
        margin = c(right = 1), main = "Layoff: Replaced")
 
-## ----punish1-------------------------------------------------------------
 data("Punishment", package = "vcd")
 str(Punishment, vec.len = 2)
 
-## ----punish2-------------------------------------------------------------
 pun <- xtabs(Freq ~ memory + attitude + age + education, 
              data = Punishment)
 dimnames(pun) <- list(
@@ -246,16 +244,13 @@ dimnames(pun) <- list(
   Age = c("15-24", "25-39", "40+"),
   Education = c("Elementary", "Secondary", "High"))
 
-## ----punish3-------------------------------------------------------------
 (mod.cond <- loglm(~ Memory * Age * Education + 
                      Attitude * Age * Education, data = pun))
 
-## ----punish4-------------------------------------------------------------
 set.seed(1071)
 coindep_test(pun, margin = c("Age", "Education"),
              indepfun = function(x) sum(x ^ 2), aggfun = sum)
 
-## ----punish-cond1-bis, h=8, w=8, out.width='.95\\textwidth', cap='Conditional mosaic plot of the Punishment data for the model of conditional independence of attitude and memory, given age and education. Shading of tiles is based on the sum of squares statistic.', echo=FALSE, fig.pos='hbt'----
 set.seed(1071)
 pun_cotab <- cotab_coindep(pun, condvars = 3 : 4, type = "mosaic",
                            varnames = FALSE, margins = c(2, 1, 1, 2),
@@ -263,19 +258,9 @@ pun_cotab <- cotab_coindep(pun, condvars = 3 : 4, type = "mosaic",
 cotabplot(~ Memory + Attitude | Age + Education,
           data = pun, panel = pun_cotab)
 
-## ------------------------------------------------------------------------
 mods.list <- apply(pun, c("Age", "Education"),
                    function(x) loglm(~ Memory + Attitude, data = x)$pearson)
 
-## ----punish-cond1, h=8, w=8, out.width='.95\\textwidth', cap='Conditional mosaic plot of the Punishment data for the model of conditional independence of attitude and memory, given age and education. Shading of tiles is based on the sum of squares statistic.', eval=FALSE----
-## set.seed(1071)
-## pun_cotab <- cotab_coindep(pun, condvars = 3 : 4, type = "mosaic",
-##   varnames = FALSE, margins = c(2, 1, 1, 2),
-##   test = "sumchisq", interpolate = 1 : 2)
-## cotabplot(~ Memory + Attitude | Age + Education,
-##           data = pun, panel = pun_cotab)
-
-## ----punish-cond2, h=8, w=8, out.width='.8\\textwidth', cap='Conditional mosaic plot of the Punishment data for the model of conditional independence of attitude and memory, given age and education. This plot explicitly shows the total frequencies in the cells of age and education by the areas of the main blocks for these variables.', fig.pos='!htb'----
 mosaic(~ Memory + Attitude | Age + Education, data = pun,
        shade = TRUE, gp_args = list(interpolate = 1 : 4))
 
