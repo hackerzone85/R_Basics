@@ -211,7 +211,7 @@ mosaic(jansen.tab, expected = as.formula(llm.strwb), shade = TRUE)
 *This model seems to be poorer than the mutual independence model and hasn't returned a goodness of fit likelihood ratio. The shading in the mosaic suggests that there is still unexpectedly high incidence of disease category C2 and C1 with female parent 4 and an unexpected deficit in C1 with female parent 3.*
 
 ## 5.7 
-The data set caith in MASS gives another classic 4 × 5 table tabulating hair color and eye color, this for people in Caithness, Scotland, originally from Fisher (1940). The data is stored as a data frame of cell frequencies, whose rows are eye colors and whose columns are hair colors.
+The data set caith in MASS gives another classic 4 ? 5 table tabulating hair color and eye color, this for people in Caithness, Scotland, originally from Fisher (1940). The data is stored as a data frame of cell frequencies, whose rows are eye colors and whose columns are hair colors.
 
 ```{r}
 data("caith", package = "MASS")
@@ -236,7 +236,7 @@ mosaic(cth, shade = TRUE)
 
 ## 5.8 
 
-The HairEyePlace data in vcdExtra gives similar data on hair color and eye color, for both Caithness and Aberdeen as a 4 × 5 × 2 table.
+The HairEyePlace data in vcdExtra gives similar data on hair color and eye color, for both Caithness and Aberdeen as a 4 ? 5 ? 2 table.
 
 ```{r}
 mosaic(HairEyePlace[,,"Caithness"], shade = TRUE)
@@ -262,7 +262,7 @@ cotabplot(~ Hair + Eye | Place, data = HairEyePlace, shade = TRUE, legend = FALS
 *Cotablot is useful for showing the very similar pattern of distribution and residuals between the two samples, while conditioned mosaic show much more clearly the difference in sample sizes.*
 
 ## 5.9
-Bertin (1983, pp. 30-31) used a 4-way table of frequencies of traffic accident victims in France in 1958 to illustrate his scheme for classifying data sets by numerous variables, each of which could have various types and could be assigned to various visual attributes. His data are contained in Accident in vcdExtra, a frequency data frame representing his 5 × 2 × 4 × 2 table of the variables age, result (died or injured), mode of transportation, and gender.
+Bertin (1983, pp. 30-31) used a 4-way table of frequencies of traffic accident victims in France in 1958 to illustrate his scheme for classifying data sets by numerous variables, each of which could have various types and could be assigned to various visual attributes. His data are contained in Accident in vcdExtra, a frequency data frame representing his 5 ? 2 ? 4 ? 2 table of the variables age, result (died or injured), mode of transportation, and gender.
 
 ```{r}
 data("Accident", package = "vcdExtra")
@@ -316,7 +316,7 @@ mosaic(Acc.tab, expected = ~ result+age*mode*gender
 *Injuries seem to be more common than expected among young (10-19) women who ride bicycles, though the effect is only moderate.*
 
 ## 5.10 
-The data set Vietnam in vcdExtra gives a 2 × 5 × 4 contingency table in frequency form reflecting a survey of student opinion on the Vietnam War at the University of North Carolina in May 1967. The table variables are sex, year in school, and response, which has categories: (A) Defeat North Vietnam by widespread bombing and land invasion; (B) Maintain the present policy; (C) De-escalate military activity, stop bombing and begin negotiations; (D) Withdraw military forces immediately. How does the chosen response vary with sex and year?
+The data set Vietnam in vcdExtra gives a 2 ? 5 ? 4 contingency table in frequency form reflecting a survey of student opinion on the Vietnam War at the University of North Carolina in May 1967. The table variables are sex, year in school, and response, which has categories: (A) Defeat North Vietnam by widespread bombing and land invasion; (B) Maintain the present policy; (C) De-escalate military activity, stop bombing and begin negotiations; (D) Withdraw military forces immediately. How does the chosen response vary with sex and year?
 
 ```{r}
 data("Vietnam", package = "vcdExtra")
@@ -351,7 +351,7 @@ mods.list <-
                           data = x))
 mods.list
 cat("The decomposition of G2 holds")
-kable(data.frame(Model = c("A i B | C1 (Male)", "A i B | C1 (Female)", "A i B | C")
+kable(data.frame(Model = c("AâŠ¥B | C1 (Male)", "AâŠ¥B | C1 (Female)", "AâŠ¥B | C")
                  , df = c(mods.list$Male$df, mods.list$Female$df, llm.viet2$df)
       , G2 = c(mods.list$Male$lrt, mods.list$Female$lrt, llm.viet2$lrt)))
 ```
@@ -367,3 +367,75 @@ mosaic(aperm(Viet.tab, c(1,3,2))
 ```
 
 *This mosaic plot shows that female responses are evenly spread given their cohort (years in college), the male responses tend to be more bullish (favouring aggressive tactics) among the younger cohorts and bearish (favouring exit from the war) among the older cohorts.*
+
+## 5.11 
+Consider the models for 4-way tables shown in Table 5.3.
+
+(a)	For each model, give an independence interpretation. For example, the model of mutual independence corresponds to A âŠ¥ B âŠ¥ C âŠ¥ D
+
+(b)	Use the functions shown in the table together with loglin2formula() to print the corresponding model formulas for each.
+
+```{r}
+cat("The model of mutual independence corresponds to A âŠ¥ B âŠ¥ C âŠ¥ D")
+print(loglin2string(mutual(4, factors = LETTERS[1:4])))
+print(loglin2formula(mutual(4, factors = LETTERS[1:4])))
+
+cat("The model of joint independence corresponds to e.g. [A,B,C][D] or [A,C,D][B]")
+print(loglin2string(joint(4, factors = LETTERS[1:4])))
+print(loglin2formula(joint(4, factors = LETTERS[1:4])))
+print(loglin2string(joint(4, factors = LETTERS[1:4], with = 2)))
+print(loglin2formula(joint(4, factors = LETTERS[1:4], with = 2)))
+
+cat("The model of conditional independence corresponds to e.g. AâŠ¥BâŠ¥C | D or AâŠ¥CâŠ¥D | B")
+print(loglin2string(conditional(4, factors = LETTERS[1:4])))
+print(loglin2formula(conditional(4, factors = LETTERS[1:4])))
+print(loglin2string(conditional(4, factors = LETTERS[1:4], with = 2)))
+print(loglin2formula(conditional(4, factors = LETTERS[1:4], with = 2)))
+
+cat("The markov model corresponds to e.g. [A,B][B,C][C,D] (order 1) or [A,B,C][B,C,D] (order 2)")
+print(loglin2string(markov(4, factors = LETTERS[1:4])))
+print(loglin2formula(markov(4, factors = LETTERS[1:4])))
+print(loglin2string(markov(4, factors = LETTERS[1:4], order = 2)))
+print(loglin2formula(markov(4, factors = LETTERS[1:4], order = 2)))
+
+cat("The saturated model corresponds to  [A,B,C,D]")
+print(loglin2string(saturated(4, factors = LETTERS[1:4])))
+print(loglin2formula(saturated(4, factors = LETTERS[1:4])))
+```
+
+## 5.12 
+The dataset Titanic classifies the 2,201 pasengers and crew of the Titanic by Class (1st, 2nd, 3rd, Crew), Sex, Age, and Survived. Treating Survived as the response variable,
+
+(a)	Fit and display a mosaic plot for the baseline model of joint independence, [CGA][S]. Describe the remaining pattern of associations.
+
+```{r}
+llm.tit <- loglm(~Age*Sex*Class+Survived, Titanic)
+loglin2formula(joint(4, factors = names(dimnames(Titanic))))
+mosaic(Titanic, expected = as.formula(llm.tit))
+```
+
+(b)	Do the same for a â€œmain effectsâ€ model that allows two-way associations between each of C, G, and A with S.
+
+```{r}
+llm.tit2 <- loglm(~Class:Survived + Sex:Survived + Age:Survived, data = Titanic)
+loglin2formula(conditional(4, factors = names(dimnames(Titanic))))
+mosaic(Titanic, expected = as.formula(llm.tit2))
+```
+
+(c)	What three-way association term should be added to this model to allow for greater survival among women and children? Does this give an acceptable fit?
+
+*A three way term of Age*Sex*Survived may be required to allow greater survival among women and children.*
+
+(d)	Test and display models that allow additional three-way associations until you obtain a reasonable fit.
+
+```{r}
+llm.tit3 <- loglm(~Age*Sex*Class+Age*Sex*Survived, data = Titanic)
+llm.tit3
+mosaic(Titanic, expected = as.formula(llm.tit3))
+
+llm.tit4 <- loglm(~Age*Sex*Class+Age*Sex*Survived+Sex*Class*Survived, data = Titanic)
+llm.tit4
+mosaic(Titanic, expected = as.formula(llm.tit4))
+```
+
+*The final model illustrates that women and children were more likely to survive unless they were from 3rd class. Crew class were the least likely survivers but there were very few female crew. This is a further class effect.*
