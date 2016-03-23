@@ -9,6 +9,7 @@ knitr::opts_chunk$set(warning = FALSE
 require(vcd)
 require(vcdExtra)
 require(MASS)
+library(agridat)
 ```
 
 ---
@@ -154,4 +155,56 @@ mosaic(Bartlett, expected = as.formula(llm.BT_a), shade = TRUE)
 mosaic(Bartlett, expected = as.formula(llm.BT_b), shade = TRUE)
 ```
 
-*From these mosaic plots, it can be seen that the best fit is the model of no three way interaction.*
+*From these mosaic plots, it can be seen that the best fit is the model of no three way interaction. However, a fit of conditional independance [Time Alive][Length Alive] is good enough and matches what is known about the experiment's design.
+
+## 5.6
+Red core disease, caused by a fungus, is not something you want if you are a strawberry. The data set jansen.strawberry from the agridat package gives a frequency data frame of counts of damage from this fungus from a field experiment reported by Jansen (1990). See the help file for details. The following lines create a 3 × 4 × 3 table of crossings of 3 male parents with 4 (different) female parents, recording the number of plants in four blocks of 9 or 10 plants each showing red core disease in three ordered categories, C1, C2, or C3.
+
+```{r}
+data("jansen.strawberry", package = "agridat")
+dat <- transform(jansen.strawberry, category = ordered(category, levels = c("C1", "C2", "C3")))
+levels(dat$male) <- paste0("M", 1:3)
+levels(dat$female) <- paste0("F", 1:4)
+
+jansen.tab <- xtabs(count ~ male + female + category, data = dat)
+
+names(dimnames(jansen.tab)) <- c("MaleP", "FemaleP", "Category")
+ftable(jansen.tab)
+```
+
+  (a)	Use pairs(jansen.tab, shade=TRUE) to display the pairwise associations among the three variables. Describe how disease category appears to vary with male and female parent. Why is there no apparent association between male and female parent?
+
+```{r}
+pairs(jansen.tab, shade=TRUE)
+```
+
+*The assumption would be that there is no apparent association between male and female parent due to experimental design. The experimenter has deliberately ensured equal numbers of crosses among the groups.*
+
+*From the mosaic matrix, it can be observed that Female Parent 1 tends to result in less incidence of disease category 1 and more of disease category 3. Other than that, there are no clear associations.*
+
+(b)	As illustrated in Figure 5.6, use mosaic() to prepare a 3-way mosaic plot with the tiles colored in increasing shades of some color according to disease category. Describe the pattern of category C3 in relation to male and female parent. (Hint: the highlighting arguments are useful here.)
+
+```{r}
+mosaic(jansen.tab, highlighting = "Category")
+```
+
+*Category 3 with male parent 1 shows diminishing incidence through female parents 1 to 4.*
+
+*Category 3 with male parent 2 shows higher incidence with female parent 1 than with female parents 2 to 4.*
+
+*Category 3 with male parent 3 shows higher incidence with female parents 1 and 3 than with female parents 2 and 4.*
+
+(c)	With category as the response variable, the minimal model for association is [MF][C], or ~ 1*2 + 3. Fit this model using loglm() and display the residuals from this model with mosaic(). Describe the pattern of lack of fit of this model.
+
+```{r}
+cat("Trying mutual independace model first")
+loglm(~ MaleP + FemaleP + Category, data = jansen.tab)
+
+llm.strwb <- loglm(~ MaleP * FemaleP + Category, data = jansen.tab)
+
+llm.strwb
+
+mosaic(jansen.tab, expected = as.formula(llm.strwb), shade = TRUE)
+```
+
+*This model seems to be poorer than the mutual independance model and hasn't returned a goodness of fit likelihood ratio. The shading in the mosaic suggests that there is still unexpectedly high incidence of disease category C2 and C1 with female parent 4 and an unexpected deficit in C1 with female parent 3.*
