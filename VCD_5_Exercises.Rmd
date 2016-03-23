@@ -10,6 +10,7 @@ require(vcd)
 require(vcdExtra)
 require(MASS)
 library(agridat)
+library(knitr)
 ```
 
 ---
@@ -20,7 +21,7 @@ output: html_document
 ---
 
 ## 5.1
-The data set criminal in the package logmult gives the 4 √ó 5 table below of the number of men aged 15‚Äì19 charged with a criminal case for whom charges were dropped in Denmark from 1955‚Äì1958.
+The data set criminal in the package logmult gives the 4 x 5 table below of the number of men aged 15...19 charged with a criminal case for whom charges were dropped in Denmark from 1955...1958.
 
 ```{r}
 data("criminal", package = "logmult")
@@ -39,7 +40,7 @@ residuals(llm.crim)
 
 *Glancing at the residuals, it appears as though younger individuals have become more likely to have charges dropped over the years.*
 
-(b)	Use mosaic() with the option shade=TRUE to display the pattern of signs and magnitudes of the residuals. Compare this with the result of mosaic() using ‚ÄúFriendly shading,‚Äù from the option gp=shading_Friendly. Describe verbally what you see in each regarding the pattern of association in this table.
+(b)	Use mosaic() with the option shade=TRUE to display the pattern of signs and magnitudes of the residuals. Compare this with the result of mosaic() using Friendly shading, from the option gp=shading_Friendly. Describe verbally what you see in each regarding the pattern of association in this table.
 
 ```{r}
 mosaic(criminal, shade = TRUE)
@@ -51,7 +52,7 @@ mosaic(criminal, gp = shading_Friendly)
 *The friendly shading scheme shows the same basic pattern and in addition the sign of all the residuals is revealed, emphasising the opposite corner effect, even though the residuals a small or not significant.*
 
 ## 5.2
-The data set AirCrash in vcdExtra gives a database of all crashes of commercial airplanes between 1993‚Äì2015, classified by Phase of the flight and Cause of the crash. How can you best show is the nature of the association between these variables in a mosaic plot? Start by making a frequency table, aircrash.tab:
+The data set AirCrash in vcdExtra gives a database of all crashes of commercial airplanes between 1993...2015, classified by Phase of the flight and Cause of the crash. How can you best show is the nature of the association between these variables in a mosaic plot? Start by making a frequency table, aircrash.tab:
 
 ```{r}
 data("AirCrash", package = "vcdExtra")
@@ -60,7 +61,7 @@ aircrash.tab <- xtabs(Fatalities ~ Phase + Cause, data = AirCrash)
 
  (a)	Make a default mosaic display of the data with shade=TRUE and interpret the pattern of the high-frequency cells.
 
-(b)	The default plot has overlapping labels due to the uneven marginal frequencies relative to the lengths of the category labels. Experiment with some of the labeling_args options (abbreviate, rot_labels, etc.) to see if you can make the plot more readable. Hint: a variety of these are illustrated in Section 4.1 of vignette(‚Äústrucplot‚Äù)
+(b)	The default plot has overlapping labels due to the uneven marginal frequencies relative to the lengths of the category labels. Experiment with some of the labeling_args options (abbreviate, rot_labels, etc.) to see if you can make the plot more readable. Hint: a variety of these are illustrated in Section 4.1 of vignette("strucplot")
 
 (c)	The levels of Phase and Cause are ordered alphabetically (because they are factors). Experiment with other orderings of the rows/columns to make interpretation clearer, e.g., ordering Phase temporally or ordering both factors by their marginal frequency.
  
@@ -79,14 +80,14 @@ mosaic(aircrash.tab, shade = TRUE
 *It is clear that different causes of crashes are most frequent at different phases of the flight. Human error and mechanical are common at take off. Criminal acts appear to be exceptionally common en-route. Human and weather are worst offenders on landing.*
 
 ## 5.3 
-The Lahman package contains comprehensive data on baseball statistics for Major League Baseball from 1871 through 2012. For all players, the Master table records the handedness of players, in terms of throwing (L, R) and batting (B, L, R), where B indicates ‚Äúboth.‚Äù The table below was generated using the following code:
+The Lahman package contains comprehensive data on baseball statistics for Major League Baseball from 1871 through 2012. For all players, the Master table records the handedness of players, in terms of throwing (L, R) and batting (B, L, R), where B indicates both. The table below was generated using the following code:
 
 ```{r, echo=TRUE}
 data("Master", package = "Lahman")
 basehands <- with(Master, table(throws, bats))
 ```
 
-‚Ä¢	Construct mosaic displays showing the relation of batting and throwing handedness, split first by batting and then by throwing.
+*	Construct mosaic displays showing the relation of batting and throwing handedness, split first by batting and then by throwing.
 
 ```{r}
 mosaic(throws~bats, data = basehands, gp = shading_Friendly2)
@@ -94,7 +95,7 @@ mosaic(throws~bats, data = basehands, gp = shading_Friendly2)
 mosaic(bats~throws, data = basehands, gp = shading_Friendly2)
 ```
 
-‚Ä¢	From these displays, what can be said about players who throw with their left or right hands in terms of their batting handedness? (Friendly 217)
+*	From these displays, what can be said about players who throw with their left or right hands in terms of their batting handedness? (Friendly 217)
 
 *Players tend to throw and bat with the same hand in a very strong association.*
 
@@ -155,10 +156,10 @@ mosaic(Bartlett, expected = as.formula(llm.BT_a), shade = TRUE)
 mosaic(Bartlett, expected = as.formula(llm.BT_b), shade = TRUE)
 ```
 
-*From these mosaic plots, it can be seen that the best fit is the model of no three way interaction. However, a fit of conditional independance [Time Alive][Length Alive] is good enough and matches what is known about the experiment's design.
+*From these mosaic plots, it can be seen that the best fit is the model of no three way interaction. However, a fit of conditional independence [Time Alive][Length Alive] is good enough and matches what is known about the experiment's design.
 
 ## 5.6
-Red core disease, caused by a fungus, is not something you want if you are a strawberry. The data set jansen.strawberry from the agridat package gives a frequency data frame of counts of damage from this fungus from a field experiment reported by Jansen (1990). See the help file for details. The following lines create a 3 √ó 4 √ó 3 table of crossings of 3 male parents with 4 (different) female parents, recording the number of plants in four blocks of 9 or 10 plants each showing red core disease in three ordered categories, C1, C2, or C3.
+Red core disease, caused by a fungus, is not something you want if you are a strawberry. The data set jansen.strawberry from the agridat package gives a frequency data frame of counts of damage from this fungus from a field experiment reported by Jansen (1990). See the help file for details. The following lines create a 3 x 4 x 3 table of crossings of 3 male parents with 4 (different) female parents, recording the number of plants in four blocks of 9 or 10 plants each showing red core disease in three ordered categories, C1, C2, or C3.
 
 ```{r}
 data("jansen.strawberry", package = "agridat")
@@ -197,7 +198,7 @@ mosaic(jansen.tab, highlighting = "Category")
 (c)	With category as the response variable, the minimal model for association is [MF][C], or ~ 1*2 + 3. Fit this model using loglm() and display the residuals from this model with mosaic(). Describe the pattern of lack of fit of this model.
 
 ```{r}
-cat("Trying mutual independace model first")
+cat("Trying mutual independence model first")
 loglm(~ MaleP + FemaleP + Category, data = jansen.tab)
 
 llm.strwb <- loglm(~ MaleP * FemaleP + Category, data = jansen.tab)
@@ -207,4 +208,162 @@ llm.strwb
 mosaic(jansen.tab, expected = as.formula(llm.strwb), shade = TRUE)
 ```
 
-*This model seems to be poorer than the mutual independance model and hasn't returned a goodness of fit likelihood ratio. The shading in the mosaic suggests that there is still unexpectedly high incidence of disease category C2 and C1 with female parent 4 and an unexpected deficit in C1 with female parent 3.*
+*This model seems to be poorer than the mutual independence model and hasn't returned a goodness of fit likelihood ratio. The shading in the mosaic suggests that there is still unexpectedly high incidence of disease category C2 and C1 with female parent 4 and an unexpected deficit in C1 with female parent 3.*
+
+## 5.7 
+The data set caith in MASS gives another classic 4 ◊ 5 table tabulating hair color and eye color, this for people in Caithness, Scotland, originally from Fisher (1940). The data is stored as a data frame of cell frequencies, whose rows are eye colors and whose columns are hair colors.
+
+```{r}
+data("caith", package = "MASS")
+```
+
+(a)	The loglm() and mosaic() functions don't understand data in this format, so use Caith <- as.matrix(caith) to convert to array form. Examine the result, and use names(dimnames(Caith))<-c() to assign appropriate names to the row and column dimensions.
+
+(b)	Fit the model of independence to the resulting matrix using loglm().
+
+(c)	Calculate and display the residuals for this model.
+
+(d)	Create a mosaic display for this data.
+
+```{r}
+cth <- as.matrix(caith)
+names(dimnames(cth)) <- c("Eye", "Hair")
+llm.cth <- loglm(~ Eye + Hair, data = cth)
+llm.cth
+resid(llm.cth)
+mosaic(cth, shade = TRUE)
+```
+
+## 5.8 
+
+The HairEyePlace data in vcdExtra gives similar data on hair color and eye color, for both Caithness and Aberdeen as a 4 ◊ 5 ◊ 2 table.
+
+```{r}
+mosaic(HairEyePlace[,,"Caithness"], shade = TRUE)
+mosaic(HairEyePlace[,,"Aberdeen"], shade = TRUE)
+```
+
+(a)	Prepare separate mosaic displays, one for each of Caithness and Aberdeen. Comment on any difference in the pattern of residuals.
+
+*There are subtle pattern differences but overall similarities are more evident. The Pearson residuals are much larger for the Aberdeen, indicating even stronger associations.*
+
+(b)	Construct conditional mosaic plots, using the formula ~ Hair + Eye | Place and both mosaic() and cotabplot(). It is probably more useful here to suppress the legend in these plots. Comment on the difference in what is shown in the two displays.
+
+```{r}
+mosaic(~ Hair + Eye | Place, data = HairEyePlace
+       , shade = TRUE, legend = FALSE
+       , rot_labels = c(0,0,0,90)
+       , rot_varnames = c(0,0,0,90)
+       , offset_labels = c(0,1,0,0)
+       , offset_varnames = c(0,0,0,0))
+cotabplot(~ Hair + Eye | Place, data = HairEyePlace, shade = TRUE, legend = FALSE)
+```
+
+*Cotablot is useful for showing the very similar pattern of distribution and residuals between the two samples, while conditioned mosaic show much more clearly the difference in sample sizes.*
+
+## 5.9
+Bertin (1983, pp. 30-31) used a 4-way table of frequencies of traffic accident victims in France in 1958 to illustrate his scheme for classifying data sets by numerous variables, each of which could have various types and could be assigned to various visual attributes. His data are contained in Accident in vcdExtra, a frequency data frame representing his 5 ◊ 2 ◊ 4 ◊ 2 table of the variables age, result (died or injured), mode of transportation, and gender.
+
+```{r}
+data("Accident", package = "vcdExtra")
+Acc <- Accident
+Acc$mode <- factor(Acc$mode, levels = c("Pedestrian", "Bicycle", "Motorcycle", "4-Wheeled"))
+```
+
+ (a)	Use loglm() to fit the model of mutual independence, Freq ~ age+mode+gender+result to this data set.
+
+```{r}
+llm.acc <- loglm(Freq ~ result+age+mode+gender, data = Accident)
+llm.acc
+```
+
+(b)	Use mosaic() to produce an interpretable mosaic plot of the associations among all variables under the model of mutual independence. Try different orders of the variables in the mosaic. (Hint: the abbreviate component of the labeling_args argument to mosaic() will be useful to avoid some overlap of the category labels.)
+
+```{r}
+mosaic(Freq ~ result+age+gender+mode, data = Acc
+       , rot_labels = c(20,0,0,90)
+       , offset_varnames = c(1, 0, 0, 0)
+       , abbreviate_labs = c(FALSE, FALSE, 1, 1)
+       , shade = TRUE
+       )
+```
+
+(c)	Treat result ("Died" vs. "Injured") as the response variable, and fit the model Freq ~ age*mode*gender + result that asserts independence of result from all others jointly.
+
+```{r}
+llm.acc2 <- loglm(Freq ~ result+age*mode*gender, data = Accident)
+llm.acc2
+```
+
+(d)	Construct a mosaic display for the residual associations in this model. Which combinations of the predictor factors are more likely to result in death?
+
+```{r}
+Acc.tab <- xtabs(Freq ~ result+age+gender+mode, data = Acc)
+mosaic(Acc.tab, expected = ~ result+age*mode*gender
+       , rot_labels = c(0,0,0,90)
+       , offset_varnames = c(1, 0, 0, 0)
+       , abbreviate_labs = c(FALSE, FALSE, 1, 1)
+       , shade = TRUE
+       )
+```
+
+*The clearest pattern appears to be that deaths are far more prevalent than injuries for older (50+) males. Implying that if this group has an accident, they are least likely to survive. This is especially true of pedestrains. Male pedestrians appear to receive more fatalities than expected also in the 30-49 age group.*
+
+*Females in general are less generally less represented in this data. This may or may not mean they are less frequently involved in accidents. That would depend on the data collection. Among women, deaths in the 30-49 age group are very infrequent and deaths are very infrequent among both genders in age groups 10-19 and 20-29*
+
+*The youngest age group have the lowest incidence of all and it's difficult to distinguish a pattern at this display resolution.*
+
+*Injuries seem to be more common than expected among young (10-19) women who ride bicycles, though the effect is only moderate.*
+
+## 5.10 
+The data set Vietnam in vcdExtra gives a 2 ◊ 5 ◊ 4 contingency table in frequency form reflecting a survey of student opinion on the Vietnam War at the University of North Carolina in May 1967. The table variables are sex, year in school, and response, which has categories: (A) Defeat North Vietnam by widespread bombing and land invasion; (B) Maintain the present policy; (C) De-escalate military activity, stop bombing and begin negotiations; (D) Withdraw military forces immediately. How does the chosen response vary with sex and year?
+
+```{r}
+data("Vietnam", package = "vcdExtra")
+```
+
+ (a)	With response (R) as the outcome variable and year (Y) and sex (S) as predictors, the minimal baseline loglinear model is the model of joint independence, [R][YS]. Fit this model, and display it in a mosaic plot.
+ 
+```{r}
+llm.viet <- loglm(Freq ~ response + year * sex, data = Vietnam)
+llm.viet
+Viet.tab <- xtabs(Freq ~ response + year + sex, data = Vietnam)
+mosaic(Viet.tab, expected = ~ response + year * sex, shade = TRUE)
+```
+
+(b)	Construct conditional mosaic plots of the response versus year separately for males and females. Describe the associations seen here.
+
+```{r}
+mosaic(Viet.tab[,,"Male"], expected = ~ response + year, shade = TRUE)
+mosaic(Viet.tab[,,"Female"], expected = ~ response + year, shade = TRUE)
+```
+
+(c)	Follow the methods shown in Example 5.10 to fit separate models of independence for the levels of sex, and the model of conditional independence, R ??? Y | S. Verify that the decomposition of G2 in Eqn. 5.6 holds for these models.
+
+```{r}
+cat("First fit the conditional independence model")
+llm.viet2 <- loglm(Freq ~ response * sex + year * sex, data = Vietnam)
+llm.viet2
+cat("Then produce a model for each sex")
+mods.list <-
+  apply(Viet.tab, "sex",
+        function(x) loglm(~ response + year, 
+                          data = x))
+mods.list
+cat("The decomposition of G2 holds")
+kable(data.frame(Model = c("A i B | C1 (Male)", "A i B | C1 (Female)", "A i B | C")
+                 , df = c(mods.list$Male$df, mods.list$Female$df, llm.viet2$df)
+      , G2 = c(mods.list$Male$lrt, mods.list$Female$lrt, llm.viet2$lrt)))
+```
+
+(d)	Construct a useful 3-way mosaic plot of the data for the model of conditional independence.
+
+```{r}
+mosaic(aperm(Viet.tab, c(1,3,2))
+      , expected = ~ response * sex + year * sex
+      , rot_labels = c(0,0,0,0)
+      , shade = TRUE
+      )
+```
+
+*This mosaic plot shows that female responses are evenly spread given their cohort (years in college), the male responses tend to be more bullish (favouring aggressive tactics) among the younger cohorts and bearish (favouring exit from the war) among the older cohorts.*
