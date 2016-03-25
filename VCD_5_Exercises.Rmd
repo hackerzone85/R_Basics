@@ -47,9 +47,9 @@ mosaic(criminal, shade = TRUE)
 mosaic(criminal, gp = shading_Friendly)
 ```
 
-*The mosaic with shad = TRUE shows a very modest opposite corner effect. This is expected from the residuals which never exceed $\abs{2.485}$. However, the trend toward more lenient treatment of younger individuals can be detected in the shape of the plot.*
+*The mosaic with shade = TRUE shows a very modest opposite corner effect. This is expected from the residuals which never exceed $\lvert 2.485\rvert$. However, the trend toward more lenient treatment of younger individuals can be detected in the shape of the plot.*
 
-*The friendly shading scheme shows the same basic pattern and in addition the sign of all the residuals is revealed, emphasising the opposite corner effect, even though the residuals a small or not significant.*
+*The friendly shading scheme shows the same basic pattern and in addition the sign of all the residuals is revealed, emphasising the opposite corner effect, even though the residuals are small or not significant.*
 
 ## 5.2
 The data set AirCrash in vcdExtra gives a database of all crashes of commercial airplanes between 1993...2015, classified by Phase of the flight and Cause of the crash. How can you best show is the nature of the association between these variables in a mosaic plot? Start by making a frequency table, aircrash.tab:
@@ -95,7 +95,7 @@ mosaic(throws~bats, data = basehands, gp = shading_Friendly2)
 mosaic(bats~throws, data = basehands, gp = shading_Friendly2)
 ```
 
-*	From these displays, what can be said about players who throw with their left or right hands in terms of their batting handedness? (Friendly 217)
+*	From these displays, what can be said about players who throw with their left or right hands in terms of their batting handedness?
 
 *Players tend to throw and bat with the same hand in a very strong association.*
 
