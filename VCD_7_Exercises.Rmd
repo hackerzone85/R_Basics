@@ -14,6 +14,8 @@ require(effects)
 require(lattice)
 require(splines)
 require(gpairs)
+require(car)
+require(ca)
 ```
 
 ---
@@ -289,3 +291,115 @@ anova(donner.mod4, donner.mod4a, donner.mod4c, test = "Chisq")
 donner.eff <- allEffects(donner.mod4c, partial.residuals = TRUE)
 plot(donner.eff)
 ```
+
+## 7.3 
+Use component+residual plots (Section 7.5.3) to examine the additive model for the ICU data given by
+
+```{r}
+data("ICU", package = "vcdExtra")
+names(ICU)
+ICU <- ICU[,-c(4, 20)]  # remove redundant race, coma
+levels(ICU$cancer) <- c("C=nonCancer", "C=Cancer")
+levels(ICU$admit) <- c("E=Elective","E=Emerg")
+levels(ICU$uncons) <- c("A=Conc","A=Unconc")
+levels(ICU$died) <- c("Z=Survived","Z=Died")
+```
+
+
+```{r, echo = TRUE}
+icu.glm2 <- glm(died ~ age + cancer + admit + uncons,
+                data = ICU, family = binomial)
+```
+
+(a)	What do you conclude about the linearity of the (partial) relationship between age and death in this model?
+
+```{r}
+crPlots(icu.glm2, ~age, id.n = 4)
+```
+
+*This is a tricky one because a significant majority of residuals lie very directly on the linear fit. However, there is a sytematic pattern that some of the residuals follow a non-linear, possibly inverse fit. Perhaps there is an iteraction term that explains the two different facets of the residual pattern.*
+
+(b)	An alternative strategy is to allow some nonlinear relation for age in the model using a quadratic (or cubic) term like poly(age, 2) (or poly(age, 3)) in the model formula. Do these models provide evidence for a nonlinear effect of age on death in the ICU?
+
+*Fitting a model including a polynomial term and replotting to see if that improves the fit.*
+
+```{r}
+icu.glm2p <- glm(died ~ poly(age,2) + cancer + admit + uncons,
+                data = ICU, family = binomial)
+crPlots(icu.glm2p, ~poly(age,2), id.n = 4)
+```
+
+*It doesn't help.*
+
+```{r}
+anova(icu.glm2, icu.glm2p, test = "Chisq")
+```
+
+*ANOVA agrees that adding poly term does not improve the fit.*
+
+## 7.4 
+Explore the use of other marginal and conditional plots to display the relationships among the variables predicting death in the ICU in the model icu.glm2. For example, you might begin with a marginal gpairs () plot showing all bivariate marginal relations, something like this:
+
+```{r}
+gpairs(ICU[, c("age", "cancer", "admit", "uncons")]
+       , diag.pars = list(fontsize = 16
+                          , hist.color = "lightgray")
+       , mosaic.pars = list(gp=shading_Friendly
+                            , gp_args = list(interpolate=1:4))
+       )
+```
+
+*Because gpairs doesn't seem to be working on boxplots:*
+
+```{r}
+boxcols = c("lightblue", "wheat", "darkorchid1", "violetred2")
+bwplot(age~cancer+admit+uncons+died, data = ICU
+       , par.settings = list(axis.text = list(col = "darkblue")
+                             , box.dot = list(col = "darkblue")
+                             , box.rectangle = list(fill = rep(boxcols, each = 2)))
+       , xlab = list(col = "darkblue")
+       , ylab = list(col = "darkblue")
+       )
+```
+
+```{r}
+ICU.tab <- with(ICU, table(died, cancer, admit, uncons))
+mosaic(ICU.tab
+       , gp = shading_Friendly
+       , rot_labels = c(0, 0, -30, 90)
+       , offset_labels = c(0, 1, 1, 0)
+       , offset_varnames = c(0, 0, 0, 0)
+       , legend = FALSE)
+```
+
+```{r}
+ICU.mca <- mjca(ICU.tab, lambda = "Burt")
+res <- plot(ICU.mca, labels = 0, pch = ".")
+
+lvls <- strsplit(ICU.mca$factors[,2], "=")
+lvls <- sapply(lvls, function(x) x[[2]])
+
+coords <- data.frame(res$cols, facts = ICU.mca$factors[,1], lvls)
+nlev <- ICU.mca$levels.n
+fact <- unique(as.character(coords$facts))
+cols = c("violetred2", "wheat", "darkorchid1", "lightblue")
+
+points(coords[,1:2], pch=rep(16:19, nlev), col=rep(cols, nlev), cex=1.2)
+text(coords[,1:2], label=coords$lvls
+     , col=rep(cols, nlev), pos=rep(c(2,4,1,3),nlev)
+     , cex=0.9, xpd=TRUE)
+lwd <- 2
+for(i in seq_along(fact)) {
+  lines(Dim2 ~ Dim1, data = coords, subset = facts==fact[i], 
+        lwd = lwd[i], col = cols[i])
+}
+
+legend("bottomright", 
+       legend = c("died", "cancer", "admit", "unconcs"),
+       title = "Factor", title.col = "black",
+       col = cols, text.col = cols, pch = 16:19,
+       bg = "gray95", cex = 0.8)
+```
+
+*To conclude, it appears that uncons is a very strong predictor of died/survived.*
+
