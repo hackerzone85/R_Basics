@@ -238,3 +238,54 @@ LRstats(arb.glm3nl, arb.glm2in)
 *This investigation has shown the complexity of working with highly correlated variables. To conclude, the findings are that there is a non-linear relationship with an interaction between a spline function of Year and quadratic in the log transformed Mortality rate. This is quite difficult to interpret.*
 
 *The spline term on Year is probably the best representation of some trend over time. The interaction effect of mortality may possibly be explained as some kind of reaction to mortality/survival of children already born inlfuencing birth rates, which could cause systemic, time delayed fluctuations. How this would translate into changes in the ratio of males to females is anybody's guess.*
+
+## 7.2 
+For the Donner Party data in Donner, examine Grayson's 1990 claim that survival in the Donner Party was also mediated by the size of the family unit. This takes some care, because the family variable in the Donner data is a simplified grouping based on the person's name and known alliances among families from the historical record. Use the following code to compute a family.size variable from each individual's last name:
+
+```{r, echo=TRUE}
+Donner$survived <- factor(Donner$survived, labels = c("no", "yes"))
+lame <- strsplit(rownames(Donner), ",")
+lame <- sapply(lame, function(x) x[[1]])
+Donner$family.size <- as.vector(table(lame)[lame])
+```
+
+ (a)	Choose one of the models (donner.mod4, donner.mod6) from Example 7.9 that include the interaction of age and sex and nonlinear terms in age. Fit a new model that adds a main effect of family.size. What do you conclude about Grayson's claim?
+
+```{r}
+donner.mod4 <- glm(survived ~ poly(age, 2) * sex,
+                   data = Donner, family = binomial)
+donner.mod4a <- update(donner.mod4, .~. + family.size)
+anova(donner.mod4, donner.mod4a, test = "Chisq")
+```
+
+*This new models are a better fit than the versions without family size.*
+
+(b)	Produce an effect plot for this model.
+
+```{r}
+donner.eff <- allEffects(donner.mod4a, partial.residuals = TRUE)
+plot(donner.eff)
+```
+
+(c)	Continue, by examining whether the effect of family size can be taken as linear, or whether a nonlinear term should be added.
+
+*It does appear as though there could be some non-linearity. First try with a quadratic term:*
+
+```{r}
+donner.mod4b <- update(donner.mod4, .~. + poly(family.size, 2))
+anova(donner.mod4, donner.mod4a, donner.mod4b, test = "Chisq")
+```
+
+*Quadratic is a further significant improvement on fit.*
+
+```{r}
+donner.mod4c <- update(donner.mod4, .~. + ns(family.size, 4))
+anova(donner.mod4, donner.mod4a, donner.mod4c, test = "Chisq")
+```
+
+*The natural spline is better still.*
+
+```{r}
+donner.eff <- allEffects(donner.mod4c, partial.residuals = TRUE)
+plot(donner.eff)
+```
