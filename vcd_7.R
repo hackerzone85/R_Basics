@@ -40,7 +40,6 @@ exp(10 * coef(arth.logistic)["Age"]) # cumulative 10 year increase
 arth.lm <- glm(Better ~ Age, data = Arthritis)
 coef(arth.lm) # rule of thumb compare this to logistic coef / 4 
 
-
 # this is the test against the intercept only
 anova(arth.logistic, test = "Chisq")
 # this is a test against the saturated model. how good is the fit?
