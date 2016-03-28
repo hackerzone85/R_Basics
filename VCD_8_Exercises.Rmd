@@ -1,0 +1,136 @@
+```{r prologue, results='hide', echo=FALSE}
+knitr::opts_chunk$set(warning = FALSE
+                      , message = FALSE
+                      , echo = FALSE
+                      )
+```
+
+```{r setup}
+require(vcd)
+require(vcdExtra)
+require(MASS)
+require(lmtest)
+require(effects)
+require(car)
+require(rms)
+require(VGAM)
+require(reshape2)
+require(ggplot2)
+require(directlabels)
+```
+
+---
+title: "VCD Exercise 8"
+author: "Julian Hatwell"
+date: "March 28, 2016"
+output: html_document
+---
+
+## 8.1 
+For the women's labor force participation data (Womenlf), the response variable, partic, can be treated as ordinal by using
+
+Use the methods in Section 8.1 to test whether the proportional odds model holds for these data.
+
+```{r}
+data("Womenlf", package = "car")
+Womenlf$partic <- ordered(Womenlf$partic, levels = c("not.work", "parttime", "fulltime"))
+str(Womenlf)
+```
+
+```{r}
+# need to compare PO with non-PO models (latter allows slope to change for different coeffs)
+wlf.po <- vglm(partic ~ hincome + children, data = Womenlf,
+                family = cumulative(parallel = TRUE))
+wlf.po
+
+# parrallel = FALSE is the NPO model
+wlf.npo <- vglm(partic ~ hincome + children, data = Womenlf,
+                 family = cumulative(parallel = FALSE))
+wlf.npo
+
+# this coef function is specific to the vglm object
+coef(wlf.po, matrix = TRUE) # only the intercept changes
+coef(wlf.npo, matrix = TRUE) # all the coefs change
+```
+
+
+*These coefs are so wildly different it's difficult to be sure that there isn't a mistake in the calcs.*
+
+```{r}
+VGAM::lrtest(wlf.npo, wlf.po) # equivalent to anova for vglm objects
+```
+
+*Is Chisq so vanishingly small that it's not even printed?*
+
+```{r}
+# rms plot
+op <- par(mfrow=c(1,2))
+plot.xmean.ordinaly(partic ~ hincome + children,
+                  data = Womenlf,
+                    lwd=2, pch=16, subn=FALSE)
+par(op)
+```
+
+*This graphs show support for the case against the PO model. It doesn't hold for hincome and children is not well differentiated between not.work and parttime.*
+
+## 8.2 
+The data set housing in the MASS package gives a 3 × 3 × 4 × 2 table in frequency form relating (a) satisfaction (Sat) of residents with their housing (High, Medium, Low), (b) perceived degree of influence (Infl) they have on the management of the property (High, Medium, Low), (c) Type of rental (Tower, Atrium, Apartment, Terrace), and (d) contact (Cont) residents have with other residents (Low, High). Consider satisfaction as the ordinal response variable.
+
+```{r}
+data("housing", package = "MASS")
+housing <- within(housing, { 
+  Infl <- ordered(Infl, levels = c("Low", "Medium", "High"))
+  Cont <- ordered(Cont, levels = c("Low", "High"))
+  Type <- ordered(Type, levels = c("Tower", "Atrium", "Apartment", "Terrace"))
+})
+str(housing)
+```
+
+(a)	Fit the proportional odds model with additive (main) effects of housing type, influence in management, and contact with neighbors to this data. (Hint: Using polr (), with the data in frequency form, you need to use the weights argument to supply the Freq variable.)
+
+```{r}
+hou.polr <- polr(Sat ~ Infl + Cont + Type, weights = Freq
+                  , data = housing, Hess = TRUE)
+summary(hou.polr)
+Anova(hou.polr)
+```
+
+(b)	Investigate whether any of the two-factor interactions among Infl, Type, and Cont add substantially to goodness of fit of this model. (Hint: use stepAIC (), with the scope formula ~ ??^2 and direction="forward".)
+
+```{r}
+hou.step <- stepAIC(hou.polr, scope = ~.^2, direction = "forward", trace = FALSE)
+Anova(hou.step)
+hou.step$anova
+```
+
+(c)	For your chosen model from the previous step, use the methods of Section 8.1.5 to plot the probabilities of the categories of satisfaction.
+
+```{r}
+hou.chosen <- polr(Sat ~ Infl + Cont + Type + Infl:Type + Cont:Type
+                   , weights = Freq
+                   , data = housing, Hess = TRUE)
+
+hou.fitp <- cbind(housing,
+                   predict(hou.chosen, type = "probs"))
+head(hou.fitp)
+
+# this is an unpivot operation
+plotdata <- melt(hou.fitp
+                 , id.vars = c("Infl", "Type", "Cont")
+                 , measure.vars = c("Low", "Medium", "High"),
+                variable.name = "Sat",
+                value.name = "Probability")
+
+gg <- ggplot(plotdata, aes(x = as.numeric(Type), y = Probability, colour = Sat)) +
+  geom_line(size = 2.5) + 
+  theme_bw() + #xlim(0.5, 4.5) +
+  geom_point(color = "black", size = 1.5) +
+  facet_grid(Infl~Cont, labeller = label_both) +
+  xlab("Type") + scale_x_discrete(limits=c("Tower", "Atrium", "Apartment", "Terrace"), expand = c(0.1, 0.1))
+  # scale_x_manual(levels = c("Tower", "Atrium", "Apartment", "Terrace"))
+direct.label(gg)
+```
+
+(d)	Write a brief summary of these analyses, interpreting how satisfaction with housing depends on the predictor variables. 
+
+*It's a rather complext inter-relationship of the variables. Generally, satisfaction is highest with influence is highest. Tower accommodation generally gives higher satisfaction. Contact with neighbours improves satisfaction. Having more influence and/or more contact changes satisfaction with the specific housing types. For example, people in terraces and apartments don't like much contact with neighbours.*
