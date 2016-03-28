@@ -403,3 +403,60 @@ legend("bottomright",
 
 *To conclude, it appears that uncons is a very strong predictor of died/survived.*
 
+## 7.5 
+The data set Caesar in vcdExtra gives a 3 × 23 frequency table classifying 251 women who gave birth by Caesarian section by Infection (three levels: none, Type 1, Type2) and Risk, whether Antibiotics were used, and whether the Caesarian section was Planned or not. Infection is a natural response variable. In this exercise, consider only the binary outcome of infection vs. no infection.
+
+```{r}
+data("Caesar", package = "vcdExtra")
+```
+
+(a)Fit the main-effects logit model for the binary response Infect. Note that with the data in the form of a frequency data frame you will need to use weights=Freq in the call to glm(). (It might also be convenient to reorder the levels of the factors so that “No” is the baseline level for each.)
+
+```{r}
+caes.dat <- as.data.frame(Caesar)
+caes.dat$Risk <- factor(caes.dat$Risk, levels = c("No", "Yes"))
+caes.dat$Planned <- factor(caes.dat$Planned, levels = c("No", "Yes"))
+caes.dat$Antibiotics <- factor(caes.dat$Antibiotics, levels = c("No", "Yes"))
+levels(caes.dat$Infection) <- ifelse(levels(caes.dat$Infection) != "None", "Yes", "No")
+caes.dat <- as.data.frame(xtabs(~.,expand.dft(caes.dat))) # expand and collapse over new infection category.
+
+caes.glm <- glm(Infection~Risk+Antibiotics+Planned, data = caes.dat, weights = Freq, family = binomial)
+```
+
+(b)	Use summary() or car::Anova() to test the terms in this model.
+
+```{r}
+summary(caes.glm)
+anova(caes.glm, test = "Chisq")
+```
+
+(c)Interpret the coefficients in the fitted model in terms of their effect on the odds of infection.
+
+```{r}
+exp(coef(caes.glm))
+invlogit <- function(o) {o/(1+o)}
+```
+
+*The intercept represents the base odds of infection. Using the inverse logit formula $p = \frac{odds}{1+odds}$ this turns out to be `r invlogit(exp(coef(caes.glm)[1]))`.*
+
+*The other coefs are the odds ratios for each variable, for example the risk factor indicates that the person is `r exp(coef(caes.glm)[2])` times as likely to have an infection.*
+
+This would translate to a probability of infection of `r exp(coef(caes.glm)[1])` * `r exp(coef(caes.glm)[2])` = `r exp(coef(caes.glm)[1]) * exp(coef(caes.glm)[2])` in the odds or a probability of `r invlogit(exp(coef(caes.glm)[1]) * exp(coef(caes.glm)[2]))`.*
+
+(d)	Make one or more effects plots for this model, showing separate terms, or their combinations.
+
+```{r}
+caes.eff <- allEffects(caes.glm, partial.residuals = TRUE)
+plot(caes.eff)
+
+caes.full <- Effect(c("Risk", "Antibiotics", "Planned"), caes.glm)
+
+# logit scale with translated axes
+plot(caes.full, multiline = TRUE,
+     colors = c("violetred2", "steelblue"), lwd = 3,
+     ticks = list(at = c(.05, .1, .25, .5, .75, .9, .95)),
+     key.args = list(x = .52, y = .92, columns = 1),
+     par.settings = list(strip.background = list(col="white")),
+     grid = TRUE)
+```
+
