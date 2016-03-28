@@ -9,6 +9,7 @@ library(effects)
 library(gpairs)
 library(splines)
 library(rms)
+library(car)
 p <- c(.05, .10, .25, .50, .75, .90, .95)
 odds <- p / (1 - p)
 data.frame(p,
@@ -200,7 +201,6 @@ plot(arth.full, multiline = TRUE, ci.style = "bands",
 
 set.seed(1235)
 data("Donner", package = "vcdExtra") # load the data
-library(car)  # for some() and Anova()
 some(Donner, 8)
 nrow(Donner)
 # response is more convenient as a factor
@@ -461,7 +461,6 @@ influenceIndexPlot(donner.mod3
 
 icu.glm2 <- glm(died ~ age + cancer  + admit + uncons,
                data = ICU, family = binomial)
-library(car)
 res <- influencePlot(icu.glm2, id.col = "red", 
                      scale = 8, id.cex = 1.5, id.n = 3)
 idx <- which(rownames(ICU) %in% rownames(res))
