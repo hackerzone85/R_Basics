@@ -220,4 +220,3 @@ wlf.multinom <- update(wlf.multinom, . ~ .)
 
 plot(Effect(c("hincome", "children"), wlf.multinom),
      style = "stacked", key.args = list(x = .05, y = .9))
-
