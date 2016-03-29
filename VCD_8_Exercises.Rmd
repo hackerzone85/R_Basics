@@ -253,7 +253,7 @@ plot.xmean.ordinaly(response ~ year * sex
                     , subn=FALSE)
 ```
 
-* Very good support for the model apart from this divergence for males in year 5.*
+*Very good support for the model apart from this divergence for males in year 5.*
 
 (c)	Fit the multinomial logistic model, also allowing an interaction. Use car::Anova () to assess the model terms.
 
@@ -283,14 +283,20 @@ plot(Effect(c("sex", "year"), viet.mn),
 (e)	Fit the simpler multinomial model in which there is no effect of year for females and the effect of year is linear for males (on the logit scale). Test whether this model is significantly worse than the general multinomial model with interaction.
 
 ```{r}
-viet.mn2 <- multinom(response ~ year + sex + year:sex=="Male"
+viet <- within(viet, {
+  yearMale <- ifelse(sex=="Male", year, 0)
+})
+viet.mn2 <- multinom(response ~ sex + yearMale
                     , weights = Freq
                     , data = viet
                     , Hess = TRUE)
-
 Anova(viet.mn2)
+anova(viet.mn2, viet.mn)
 stats <- summary(viet.mn2, Wald = TRUE)
 z <- stats$Wald.ratios
 p <- 2 * (1 - pnorm(abs(z)))
 zapsmall(p)
+
+plot(Effect(c("sex", "yearMale"), viet.mn2),
+     style = "stacked", key.args = list(x = .05, y = .9))
 ```
