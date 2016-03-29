@@ -2,6 +2,7 @@ library(vcd)
 library(vcdExtra)
 library(car)
 library(ggplot2)
+library(MASS)
 
 options("contrasts")
 myTable <- UCBAdmissions
@@ -37,7 +38,6 @@ par(op)
 # looking at the mutual independance model, though we know it can't be true
 # and we're trying to investigate gender bias
 data("UCBAdmissions")
-library(MASS)
 berk.loglm0 <- loglm(~ Dept + Gender + Admit, data = UCBAdmissions,
                      param = TRUE, fitted = TRUE)
 berk.loglm0
