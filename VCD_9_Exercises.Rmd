@@ -80,7 +80,7 @@ day.glm0 <- glm(Freq~cigarette + alcohol + marijuana
 day.glm0
 ```
 
-*Now the join model.*
+*Now the joint model.*
 
 ```{r}
 day.glm1 <- glm(Freq~cigarette * alcohol + marijuana
@@ -125,3 +125,118 @@ LRstats(day.glm0, day.glm1, day.glm2, day.glm3, day.glm4)
 ```
 
 *The homogenous dependency model appears to be the best one. The three-way interaction term adds very little.*
+
+## 9.3 
+The data set Caesar in vcdExtra gives a 3 × 23 frequency table classifying 251 women who gave birth by Caesarian section by Infection (three levels: none, Type 1, Type2) and Risk, whether Antibiotics were used, and whether the Caesarian section was Planned or not. Infection is a natural response variable, but the table has quite a few zeros.
+
+```{r}
+data("Caesar", package = "vcdExtra")
+```
+
+(a)	Use structable() and mosaic() to see the locations of the zero cells in this table.
+
+```{r}
+structable(Antibiotics+Planned~Risk+Infection, Caesar)
+mosaic(structable(Antibiotics+Planned~Infection+Risk
+                  , Caesar)
+       , shade = TRUE
+       , legend = FALSE
+       , rot_labels = c(0,0,90,0)
+       , offset_labels = c(0,0,0,0.5)
+       , offset_varnames = c(0,0,0,0)
+       )
+```
+
+(b)	Use loglm() to fit the baseline model [I][RAP]. Is there any problem due to zero cells indicated in the output?
+
+```{r}
+caes.llm1 <- loglm(~ (Antibiotics * Planned * Risk) + Infection
+                 , Caesar
+                 , param = TRUE
+                 , fitted = TRUE)
+
+caes.llm1
+```
+
+*The Pearson resids are NaN*
+
+(c)	For the purpose of this excercise, treat all the zero cells as sampling zeros by adding 0.5 to all cells, e.g., Caesarl <- Caesar + 0.5. Refit the baseline model.
+
+```{r}
+caesnz <- Caesar + 0.5
+caes.llm1a <- loglm(~ (Antibiotics * Planned * Risk) + Infection
+                 , caesnz
+                 , param = TRUE
+                 , fitted = TRUE)
+
+caes.llm1a
+```
+
+
+(d)	Now fit a “main effects” model [IR][IA][IP][RAP] that allows associations of Infection with each of the predictors.
+
+```{r}
+caes.llm2 <- loglm(~ (Antibiotics * Planned * Risk) + (Antibiotics + Planned + Risk) * Infection
+                 , caesnz
+                 , param = TRUE
+                 , fitted = TRUE)
+
+caes.llm2
+anova(caes.llm1a, caes.llm2)
+
+caes.llm3 <- loglm(~ (Antibiotics * Planned * Risk * Infection)^3 - Antibiotics:Planned:Infection - Antibiotics:Risk:Infection - Risk:Planned:Infection - Antibiotics:Planned:Risk:Infection
+                 , caesnz
+                 , param = TRUE
+                 , fitted = TRUE)
+caes.llm3
+```
+
+*These two are equivalent*
+
+## 9.4 
+The Detergent in vcdExtra gives a 23 × 3 table classifying a sample of 1,008 consumers according to their preference for (a) expressed Preference for Brand “X” or Brand “M” in a blind trial, (b) Temperature of laundry water used, (c) previous use (M_user) of detergent Brand “M,” and (d) the softness (Water_softness) of the laundry water used.
+
+```{r}
+data("Detergent", package = "vcdExtra")
+```
+
+(a)	Make some mosaic displays to visualize the associations among the table variables. Try using different orderings of the table variables to make associations related to Preference more apparent.
+
+*For reference here is the structable*
+
+```{r}
+structable(M_User+Water_softness~Temperature+Preference
+                  , data = Detergent)
+
+mosaic(aperm(Detergent, c(3,1,2,4))
+       , gp = shading_Friendly2
+       , legend = FALSE)
+mosaic(aperm(Detergent, c(3,2,1,4))
+       , gp = shading_Friendly2
+       , legend = FALSE)
+mosaic(aperm(Detergent, c(3,4,1,2))
+       , gp = shading_Friendly2
+       , legend = FALSE)
+```
+
+(b)	Use a doubledecker () plot to visualize how Preference relates to the other factors.
+
+```{r}
+doubledecker(aperm(Detergent, c(1,4,2,3)))
+```
+
+(c)	Use loglm() to fit the baseline model [P][TMW] for Preference as the response variable. Use a mosaic display to visualize the lack of fit for this model.
+
+```{r}
+det.llm <- loglm(~ Preference + (Temperature * M_User * Water_softness)
+                , data = Detergent
+                , param = TRUE
+                , fitted = TRUE)
+det.llm
+mosaic(Detergent, expected = det.llm$fitted
+       , gp = shading_Friendly2)
+
+# same
+# mosaic(det.llm, formula = M_User+Water_softness~Temperature+Preference
+#        , gp = shading_Friendly2)
+```
