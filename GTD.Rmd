@@ -12,26 +12,27 @@ library(ggplot2)
 ```
 
 ---
-title: "A light-hearted look at global terrorism"
+title: "A brief analysis of the Global Terrorism Database"
 author: "Julian Hatwell"
 date: "March 29, 2016"
 output: html_document
 ---
 
-This post is inspired by a recent [article in the Huffington post](http://www.huffingtonpost.co.uk/2015/11/28/islamic-state-terrorism-threat_n_8670458.html) which contained a barchart of fatalities caused by terrorism in 5 Western European countries over the years since 1970.
+This post is inspired by a recent [article in the Huffington Post](http://www.huffingtonpost.co.uk/2015/11/28/islamic-state-terrorism-threat_n_8670458.html) which contained a [barchart of fatalities][1] caused by terrorism in 5 Western European countries over the years since 1970.
 
 The original source of the data is the [Global Terrorism Database](https://www.start.umd.edu/gtd/), which is freely available to download.
 
-In my opinion, the graph is a fairly successful attempt to demonstrate that our current perception and fear of global terrorism, may be more a symptom of the tactics of terror than founded in an objective level of real threat to human life.
+In my opinion, the graph is a fairly successful attempt to demonstrate that our current perception and fear of global terrorism is caused by something other than factual measures such as the number of deaths. It may be more a symptom of the tactics of terror or simply the dominant socio-political narrative.
 
-My reposting of the graphic on Facebook drew the attention of one particular friend. Let's call him Ioannis to protect his anonymity. Ioannis asserted that the graph wasn't making a valid comparison to current Islamic Terrorism because it "includes Northern Ireland in the 1970s and ETA in the 1980s which is not quite the same."
+My reposting of the graphic on Facebook drew the attention of one particular friend who asserted that the graph wasn't making a valid comparison to current Islamic Terrorism because it "includes Northern Ireland in the 1970s and ETA in the 1980s which is not quite the same."
 
 He went on to say "ETA and IRA conflicts were localised not global, secondly, it could be argued that they were liberation movements in search of a political solution and as a result they had the sympathy of parties on the Left. Corbyn and Livingstone supported Sinn Fein but not Al Qaeda or ISIS."
 
-So despite the obviously far greater numbers of terrorism prior to the 9th September attacks, it seems that my friend holds the opinion that we have much more to fear now. 
-I wondered if this "more" were a measurable quantity, so I downloaded the [Global Terrorism Database](https://www.start.umd.edu/gtd/) and started taking a look at it myself.
+Essentially these comments served well to emphasise my point. Can we say that people killed in Ireland by the IRA are less dead than people killed in Paris by Islamic extremists? Or that the families of the dead are comforted that Jeremy Corbyn liaised with Gerry Adams when he was otherwise shut out of the political discourse. I think probably not.
 
-The first thing I did was make sure I could reproduce the original plot (or something close), given the same data:
+In my view, the comments are evidence of an underlying cognitive bias, which leads people to ignore facts and align with a dominant narrative. I was inspired to do my own analysis of the [Global Terrorism Database](https://www.start.umd.edu/gtd/) which I present here:
+
+The first thing I did was make sure I could reproduce the [original plot][1] (or something close), given the same source data:
 
 ```{r getDataLocal, cache=TRUE}
 gtd <- read.csv("gtd.csv")
@@ -39,14 +40,13 @@ gtd <- read.csv("gtd.csv")
 
 ```{r tidyData}
 gtdwe <- gtd[gtd$region_txt == "Western Europe" &
-               gtd$nkill > 0
-            , c("eventid", "iyear", "country_txt", "natlty1_txt"
-            , "natlty2_txt", "natlty3_txt", "nkill", "gname")]
+               gtd$nkill > 0 & !(is.na(gtd$nkill))
+            , c("eventid", "iyear", "country_txt", "nkill", "gname")]
 
 gtdwe <- within(gtdwe, {
   country_txt <- ifelse(country_txt %in% c("Italy", "France"
                                            , "Germany", "United Kingdom", "Spain")
-         , as.character(country_txt), "other")
+         , as.character(country_txt), "Other")
 })
 countries <- as.vector(unique(gtdwe$country_txt))
 tergroups <- as.vector(unique(gtdwe$gname))
@@ -63,27 +63,27 @@ gtdfatals <- melt(id.vars = "year"
                   , data = gtdfatals)
 gtdfatals <- gtdfatals[!is.na(gtdfatals$fatalities),]
 gtdfatals <- within(gtdfatals, {
-  year <- factor(year, rev(levels(year)))
+  year <- factor(year, c(2015, rev(levels(year))))
 })
+gtdfatals <- rbind(gtdfatals, list(2015, "France", 140))
 ```
 
 ```{r basePlot}
 gg <- ggplot(data = gtdfatals
              , aes(x = year, y = fatalities, fill = country))
 gg + geom_bar(stat = "identity") + 
-  coord_flip() + theme_bw() + theme(legend.position="top")
+  coord_flip() + theme_bw() + theme(legend.position="top"
+                                    , axis.text.y = element_text(size=6)) +
+  labs(title = "Victims of Terrorist Attacks in Western Europe", y = "Number of fatalities", x = "Year")
 ```
 
-That's a pretty good facsimile, if you ignore the lack of colour co-ordination. Also my copy of the database only goes up to 2014. Huffington Post's statistical consultant probably added 2015-16 from other sources, although they don't tell us that.
+That's a pretty good facsimile, if you ignore the lack of colour co-ordination. The freely available [Global Terrorism Database](https://www.start.umd.edu/gtd/) contains data only up to 2014. Huffington Post's statistical consultant probably added 2015-16 from other sources, although they don't tell us that. I've added a value of 140 fatalities in France for 2015.
 
-Taking actual fatalities as a measure of the real threat from terrorism, I'm even more confused about how it's possible to ignore the glaring and rapid decline in fatalities from 1970 to the present day, now that I've constructed the graph myself.
+On initial visual assessment, the eye is drawn to the mountain of bars representing the 70's and 80's and the relative sparsity from the mid-90's onwards. There are only the 4 notable peaks in 2004 (Madrid / Al Qaeda), 2005 (London / British born, Al-Qaeda inspired), 2011 (Norway, Right-wing extremist) and 2015 (Paris, Islamist terror cell).
 
-So the first challenge to address is the rather dubious claim that death caused by localised liberations movements are not the same as death caused by Islamic terrorism. 
-By "not the same," perhaps Ioannis felt they're not as fear-inducing because they're only going to happen somewhere else, to someone else. I wonder why the fear and tragedy experienced by those other people in those other places is not as poingnant, but that's a conversation for another day.
+To examine more closely the different trends in localised terrorism compared to international extremism  it's necessary to determine which are the local and international terror groups in the subset of the data pertaining to Western Europe and incidents with 1 or more fatality. 
 
-Back to the question at hand, how much would I need to diminish the value of a life taken by a local terrorist with a liberation agenda to make that mountain of a barchart look a bit flatter and less skewed. By skewed, in this instance we mean that it provides a fair reprentation of the facts that the IRA were a little more deadly than Guardians of the Islamic Revolution.
-
-First, it's necessary to determine which are the local and international terror groups in the data. So I went through the list and labelled all the groups that I could be sure about (e.g. Basque separatists and Irish Republicans, compared to Liberate Palestine or "Iranians"). I share my categories on the github repo that goes with this report. Any advice on making it more accurate is most welcome.
+I went through the list and labelled all the groups that I could be sure about (e.g. Basque separatists and Irish Republicans, compared to Liberate Palestine or "Iranians"). I share my categories in the appendices. Any advice on making it more accurate is most welcome.
 
 ```{r groupsData}
 gtdgroups <- tapply(gtdwe$nkill, INDEX = list(gtdwe$iyear, gtdwe$gname), FUN = sum, na.rm = TRUE)
@@ -94,22 +94,26 @@ gtdgroups <- melt(id.vars = "year"
                   , data = gtdgroups)
 gtdgroups <- gtdgroups[!is.na(gtdgroups$fatalities),]
 gtdgroups <- within(gtdgroups, {
-  year <- factor(year, rev(levels(year)))
+  year <- factor(year, c(2015, rev(levels(year))))
   tergroup <- factor(tergroup, levels = unique(tergroup))
-  levels(tergroup) <- c(levels(tergroup), "Lockerbie")
+  levels(tergroup) <- c(levels(tergroup), "Lockerbie", "Paris.Attacks")
 })
+gtdgroups <- rbind(gtdgroups, list(2015, "Paris.Attacks", 140))
 
 gtdgroups[gtdgroups$year == 1988 &
             gtdgroups$tergroup == "Unknown"
           , "tergroup"] <- "Lockerbie"
 
-tervars <- read.csv("tervars.csv")
+tervars <- read.csv("tervars.csv", stringsAsFactors = FALSE)
 tervars$X <- NULL
+# prepare for the join
+gtdgroups$tergroup <- as.vector(gtdgroups$tergroup)
 
 gtdgroups <- left_join(gtdgroups, tervars) %>%
   mutate(tergroup = factor(tergroup))
 
 gtdgroups <- within(gtdgroups, {
+  tergroup <- factor(tergroup)
   internationalextremism <- factor(intext, labels = c("No", "Yes"))
   adjustedlocalism <- fatalities * (1 - 0.9 * local)
   adjustedjckl <- adjustedlocalism * (1 - 0.75 * jckl)
@@ -119,70 +123,97 @@ gtdgroups <- within(gtdgroups, {
 
 DeathsAll <- with(gtdgroups, tapply(fatalities, internationalextremism, sum))
 DeathsGFA <- with(gtdgroups[as.numeric(as.character(gtdgroups$year)) >= 2000,], tapply(fatalities, internationalextremism, sum))
+DeathsAllAve <- with(gtdgroups, tapply(fatalities, internationalextremism, mean))
+DeathsGFAAve <- with(gtdgroups[as.numeric(as.character(gtdgroups$year)) >= 2000,], tapply(fatalities, internationalextremism, mean))
 ```
 
-Of all the deaths from terrorism recorded in the database since 1970 - 2014, how many are from Intenational terrorism (generally of middle Eastern origin)?
+Of all the deaths from terrorism recorded in the database since 1970 - 2014, how many are from Intenational terrorism?
 
 ```{r}
 cat("International\n", names(DeathsAll), "\n", DeathsAll)
 ```
 
-Hmmm.... 6.5 times as many deaths caused by the locals. But they've stopped now, so it's OK! ETA are quiet and we've had the Good Friday Agreement. What's the balance since the Good Friday Agreement (December 1999), I wonder?
+Judging by the numbers here, `r round(DeathsAll[1]/DeathsAll[2],1)` times as many deaths were caused by localised terrorism between 1970 and 2015. 
+
+Given many of these groups have been much quieter since September 11th bombings of 2001 and we've had the Good Friday Agreement (GFA) working well since December 1999, it might help to look at the balance since the GFA:
 
 ```{r}
 cat("International\n", names(DeathsGFA), "\n", DeathsGFA)
 ```
 
-So even though the most dangerous terrorists in the troubled history of the UK and Ireland are now part of the solution and other groups are keen to disance themselves from the tactics of the Islamists, the numbers are still even.
+The balance has shifted to `r round(DeathsGFA[2]/DeathsGFA[1],1)` as many deaths from international terrorists as localised terrorism. The international threat must feel more current, but is still altogether out of balance given the totals.
 
-Always much easier to understand with a nice graph, here's the same data with the local vs international split highlighted:
+Here's the same graph with the local vs international split highlighted:
 
 ```{r}
 gg <- ggplot(data = gtdgroups
              , aes(x = year, y = fatalities))
 gg + geom_bar(stat = "identity", aes(fill = internationalextremism)) +
-  coord_flip() + theme_bw() + theme(legend.position="top")
+  coord_flip() + theme_bw() + theme(legend.position="top"
+                                    , axis.text.y  = element_text(size=6)) +
+  labs(title = "Victims of Terrorist Attacks in Western Europe", y = "Number of fatalities", x = "Year")
 ```
 
-It looks like those 248 deaths caused by global terrorists in the years since the GFA are almost entirely accounted for in Madrid and London bombings.
+One could conclude that those 388 deaths caused by global terrorists in the years since the GFA are almost entirely accounted for in Madrid and London bombings and the Paris attacks. Clearly these are very deadly incidents.
 
-So it's a clearer picture now. As things stand global terror attacks are much rarer, but when they strike they are much deadlier per incident. I'm not sure if that makes me fear it more or less. Perhaps it's just scarier because it's more current and it's also more newsworthy and sticks in the mind (which is basically the point of the original post). 
-
-So let's try to adjust the graph according to how we perceive fear. Localised terrorism is happening somewhere else, so we don't have to fear so much. I make an adjustment factor. Let's say they're a tenth as scary as an Islamist, who may strike anywhere, in the heart of an important European capital for instance (although I seem to remember the IRA bombing London, Birmingham and Manchester in large scale one-off incidents but this is different, isn't it?).
-
-Same data, but any death by terrorists with a local, liberation agenda are worth a tenth of a death by international extremists:
+What is the average number of deaths per incident (rounded to nearest integer)?
 
 ```{r}
-gg + geom_bar(stat = "identity", aes(y = adjustedlocalism, fill = internationalextremism)) +
-  coord_flip() + theme_bw() + theme(legend.position="top")
+cat("International\n", names(DeathsAllAve), "\n", round(DeathsAllAve, 0))
 ```
 
-So now Lockerbie, Madrid and 7th July 2005 look horrific. But there's still far too much going on back in the 70's and 80's. Can we get it to be less counter-intuitive (when intuition corresponds to an uncomfortable feeling about Islamic extremism)?
-
-Howabout this claim that "Corbyn and Livingstone supported Sinn Fein but not Al Qaeda or ISIS." Maybe the Red Ken effect makes us all feel like the IRA killings weren't so bad after all. Let's further reduce the value of death by Irish republican to a quarter of what is by our current reckoning and see if that helps make the Islamists look a bit more evil:
+Since the GFA?
 
 ```{r}
-gg + geom_bar(stat = "identity", aes(y = gtdgroups$adjustedjckl, fill = internationalextremism)) +
-  coord_flip() + theme_bw() + theme(legend.position="top")
+cat("International\n", names(DeathsGFAAve), "\n", round(DeathsGFAAve, 0))
 ```
 
-Nope, that didn't really change anything. What about the fact that it's all in the past? And obviously the further back you go, the less scary it is now. Let's reduce the value of a death in the past by 0.02 per year (because anything more than that will give negative numbers, and that's just silly).
+Tthe modern extremist threat is a lot more deadly per incident, but also a good deal more rare. This is something else that can easily be visualised:
 
 ```{r}
-gg + geom_bar(stat = "identity", aes(y = gtdgroups$adjustedall, fill = internationalextremism)) +
-  coord_flip() + theme_bw() + theme(legend.position="top")
+gg2 <- ggplot(data = gtdgroups
+             , aes(x = year)) 
+gg2 + geom_bar(stat = "count", aes(fill = internationalextremism)) +
+  scale_x_discrete(drop = FALSE) +
+  coord_flip() + theme_bw() + theme(legend.position="top"
+                                    , axis.text.y = element_text(size=6)) +
+  labs(title = "Number of terrorist incidents
+       resulting in fatality in Western Europe"
+       , y = "Number of incidents", x = "Year")
 ```
 
-Finally something's starting to happen! We could go further with this but I'll stop here as I've run out of patience. 
+Here, the localised terror groups absolutely dominate the graph, indicating that there was a far more constant and continuous threat in the past. All incidents are rapidly diminishing in number to the present day.
 
-### To summarise:
+Extracting the international extremist incidents and looking at them separately gives the following rather revealing graph:
 
-I've adjusted the actual deaths down by 90% when they're caused by local (white European) terrorists with liberation agendas
+```{r}
+gg3 <- ggplot(data = gtdgroups[gtdgroups$internationalextremism == "Yes",]
+             , aes(x = year)) 
+gg3 + geom_bar(stat = "count") +
+  scale_x_discrete(drop = FALSE) +
+  coord_flip() + theme_bw() + theme(legend.position="top"
+                                    , axis.text.y = element_text(size=6)) +
+  labs(title = "Number of terrorist incidents
+       committed by international extremists
+       resulting in fatality in Western Europe"
+       , y = "Number of incidents", x = "Year")
+```
 
-I've reduced them a further 75% and when the perpertrators apparently had the "support" of Corbyn and Livingstone, although I doubt that would make it slightly easier for the victims' families or anyone else, to be honest.
+This is the clearest evidence that global terror attacks are much rarer than localised groups over period 1970-2015. They have also become far more rare in recent years since the 1990's. This is completely counter to the suggestion that there is a greater danger now, or that trends between localised and global terror can't be compared.
 
-I've reduced them by a further 2% per year as you go into the past from 2014 when they're a long time ago and memories fade.... 
+What is clear is that when they strike they are much deadlier per incident and are therefore more newsworthy. This corroborates the point of the original post, that cognitive bias accounts for our fear, not the facts. 
 
-By using these cognitive bias factors to adjust the facts, I'm able to make it look as though the Islamist terrorism of the present day is the worst thing we've faced for decades.
+### Appendices
+The original chart from the [article in the Huffington Post](http://www.huffingtonpost.co.uk/2015/11/28/islamic-state-terrorism-threat_n_8670458.html)
 
-But despite all that, there's still that bloody Norwegian in 2011. Does anyone even remember his name. Certainly the fact that he single handedly killed 60 of his fellow countrymen in an afternoon of casual shooting with semi-automatic weapons seems to break my current model. I wonder what other act of blatant denial I have to do to rub him out of the picture?
+![barchart of fatalities][1]
+
+[1]: GTD_files\\figure-html\\o-TERRORISM-570.jpg "Victims of Terrorist Attacks in Western Europe"
+
+The catogories applied to the various terror groups:
+```{r}
+cats <- unique(gtdgroups[, c("tergroup", "internationalextremism")])
+cats[,1] <- abbreviate(as.character(cats[,1]), minlength = 40)
+cats
+```
+
