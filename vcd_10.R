@@ -47,16 +47,22 @@ exp(coef(linlin)[["Rscore:Cscore"]])
 # increases the odds of being classified 
 # one step poorer in mental health by 9.5%.
 
+# plot the fitted odds ratios to view the model structure
+linlin.fit <- matrix(fitted(linlin), 4, 6, 
+                     dimnames=dimnames(mental.tab))
+round(as.matrix(loddsratio(linlin.fit)), 3)
+
 roweff.fit <- matrix(fitted(roweff), 4, 6, 
                      dimnames=dimnames(mental.tab))
 round(as.matrix(loddsratio(roweff.fit)), 3)
 
-## ----mental-lodds-coleff-------------------------------------------------
 coleff.fit <- matrix(fitted(coleff), 4, 6, 
                      dimnames = dimnames(mental.tab))
 round(as.matrix(loddsratio(coleff.fit)), 3)
 
-## ----mental-lodds-plots, echo=FALSE, h=5, w=5, out.width='.33\\textwidth', cap='Log odds ratio plots for the R (left), C (middle), and R+C (right) models fit to the mental health data.'----
+plot(t(loddsratio(linlin.fit)), confidence = FALSE, 
+     legend_pos="bottomright", ylim = c(-.2, .3),
+     main = "log odds ratios for ses and mental, L*L model")
 plot(t(loddsratio(roweff.fit)), confidence = FALSE, 
      legend_pos="bottomright", ylim = c(-.2, .3),
      main = "log odds ratios for ses and mental, R model")
