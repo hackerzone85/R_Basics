@@ -6,6 +6,7 @@ knitr::opts_chunk$set(warning = FALSE
 ```
 
 ```{r setup}
+require(readr)
 require(MASS)
 require(dplyr)
 require(reshape2)
@@ -17,7 +18,7 @@ require(splines)
 ---
 title: "A brief analysis of the Global Terrorism Database"
 author: "Julian Hatwell"
-date: "March 29, 2016"
+date: "April 1st, 2016"
 output: html_document
 ---
 
@@ -27,22 +28,22 @@ This post is inspired by a recent [article in the Huffington Post](http://www.hu
 
 The original source of the data is the [Global Terrorism Database](https://www.start.umd.edu/gtd/), which is freely available to download.
 
-In my opinion, the graph is a fairly successful attempt to demonstrate that our current perception and fear of global terrorism is caused by something other than factual measures such as the number of deaths. It may be more a symptom of the tactics of terror or simply the dominant socio-political narrative.
+In my opinion, the graph is a fairly successful attempt to demonstrate that our current perception and fear of global terrorism is caused by something other than factual measures such as the number of deaths (or number of incidents). It may be more a symptom of the tactics of terror or simply the dominant socio-political narrative.
 
-My reposting of the graphic on Facebook drew the attention of one particular friend who asserted that the graph wasn't making a valid comparison to current Islamic Terrorism because it "includes Northern Ireland in the 1970s and ETA in the 1980s which is not quite the same."
+My reposting of the graphic on Facebook drew the attention of one particular friend who asserted that the graph wasn't making a valid comparison to current Islamist terrorism because it "includes Northern Ireland in the 1970s and ETA in the 1980s which is not quite the same."
 
 He went on to say "ETA and IRA conflicts were localised not global, secondly, it could be argued that they were liberation movements in search of a political solution and as a result they had the sympathy of parties on the Left. Corbyn and Livingstone supported Sinn Fein but not Al Qaeda or ISIS."
 
-Essentially these comments served well to emphasise my point. Can we say that people killed in Ireland by the IRA are less dead than people killed in Paris by Islamic extremists? Or were bombs planted by the IRA less dangerous because Jeremy Corbyn liaised with Gerry Adams when he was otherwise shut out of the political discourse? I think not.
+Essentially these comments serve well to emphasise my point. Can we say that people killed in Ireland by the IRA are less dead than people killed in Paris by Islamic extremists? Or were bombs planted by the IRA less dangerous because Jeremy Corbyn liaised with Gerry Adams when he was otherwise shut out of the political discourse? I think not and neither does the [Global Terrorism Database](https://www.start.umd.edu/gtd/) make any such distinction.
 
-In my view, the comments are evidence of an underlying cognitive bias, which leads people to ignore facts and align with a dominant narrative. This inspired me to do my own analysis of the [Global Terrorism Database](https://www.start.umd.edu/gtd/) to see what (objective) stories the data has to tell:
+This inspired me to do my own analysis of the [Global Terrorism Database](https://www.start.umd.edu/gtd/) to see what (objective) stories the data has to tell and help to cut through some of the political noise and cognitive bias that surrounds such an emotive topic:
 
 ## Exporatory Analysis
 
 The first thing I did was make sure I could reproduce the [original plot][1] (or something close), given the same source data:
 
 ```{r getDataLocal, cache=TRUE}
-gtd <- read.csv("gtd.csv")
+gtd <- read_csv("gtd.csv")
 ```
 
 ```{r tidyData}
@@ -53,14 +54,8 @@ gtdwe <- gtd[gtd$region_txt == "Western Europe" &
 gtdwe <- within(gtdwe, {
   country_txt <- ifelse(country_txt %in% c("Italy", "France"
                                            , "Germany", "United Kingdom", "Spain")
-                        , as.character(country_txt), "Other")
+                        , country_txt, "Other")
   imonth[eventid == 197400000001] <- 4 # Red Brigades Genoa 1974 Kidnapping
-})
-countries <- as.vector(unique(gtdwe$country_txt))
-tergroups <- as.vector(unique(gtdwe$gname))
-gtdwe <- within(gtdwe, {
-  country <- factor(as.vector(country_txt), levels = countries)
-  tergroup <- factor(as.vector(gname), levels = tergroups)
 })
 ```
 
@@ -73,8 +68,9 @@ gtdfatals <- melt(id.vars = "year"
                   , data = gtdfatals)
 gtdfatals <- gtdfatals[!is.na(gtdfatals$fatalities),]
 gtdfatals <- within(gtdfatals, {
-  year <- factor(year, c(2015, rev(levels(year))))
-})
+  country <- factor(country, levels = c("Other", "United.Kingdom", "Italy", "Spain", "France", "Germany"))
+  year <- factor(year, levels = 2015:1970)
+  })
 gtdfatals <- rbind(gtdfatals, list(2015, "France", 130))
 ```
 
@@ -90,24 +86,26 @@ gg + geom_bar(stat = "identity", colour = "lightgrey") +
 
 This is an adequate replica.
 
-The freely available [Global Terrorism Database](https://www.start.umd.edu/gtd/) contains data only up to 2014. Huffington Post's statistical consultant probably added 2015-16 from other sources, although they don't tell us that. I've added a value of [130](https://en.wikipedia.org/wiki/November_2015_Paris_attacks#Casualties) fatalities in France for 2015. There is an entry for the Red Brigades Hostage taking in Genoa with 1 killed which has month set as zero. [I have updated this to April](https://web.stanford.edu/group/mappingmilitants/cgi-bin/groups/view/77)
+The freely available [Global Terrorism Database](https://www.start.umd.edu/gtd/) contains data only up to 2014. Huffington Post's statistical consultant probably added 2015-16 from other sources, although they don't tell us that. I've added a value of [130](https://en.wikipedia.org/wiki/November_2015_Paris_attacks#Casualties) fatalities in France for 2015. There is an entry for the Red Brigades 1974 hostage taking in Genoa with 1 killed which has month set as zero. [I have updated this to April](https://web.stanford.edu/group/mappingmilitants/cgi-bin/groups/view/77)
 
-On initial visual assessment, the eye is drawn to the mountain of bars representing the 70's and 80's and the relative sparsity from the mid-90's onwards. There are only the 4 notable peaks in 2004 (Madrid / Al Qaeda), 2005 (London / British born, Al-Qaeda inspired), 2011 (Norway, Right-wing extremist) and 2015 (Paris, Islamist terror cell).
+On initial visual assessment, the eye is drawn to the mountain of bars representing the 70's and 80's and the relative sparsity from the mid-90's onwards. After 2001 there are only the 4 notable peaks in 2004 (Madrid), 2005 (London), 2011 (Norway) and 2015 (Paris).
 
 To examine more closely the different trends in localised terrorism compared to international extremism  it's necessary to determine which are the local and international terror groups in the subset of the data pertaining to Western Europe and incidents with 1 or more fatality. 
+
+The [Global Terrorism Database](https://www.start.umd.edu/gtd/) does not make this distinction explicit. 
 
 I went through the list and labelled all the groups that I could be sure about (e.g. Basque separatists and Irish Republicans, compared to Secret Organization of al Qa ida in Europe). I share my categories in the appendices.
 
 ```{r groupsData}
 gtdgroups <- tapply(gtdwe$nkill
-, INDEX = list(gtdwe$iyear, gtdwe$imonth, gtdwe$tergroup)
+, INDEX = list(gtdwe$iyear, gtdwe$imonth, gtdwe$gname)
 , FUN = sum, na.rm = TRUE)
 gtdgroups <- data.frame(ftable(gtdgroups, row.vars = 1:3)) %>%
 filter(!(is.na(Freq))) %>%
 rename(fatalities = Freq
 , tergroup = Var3
 , month = Var2) %>%
-mutate(year = factor(Var1, c(2015, rev(levels(Var1)))))
+mutate(year = factor(Var1, levels = 2015:1970))
 gtdgroups <- within(gtdgroups, {
 levels(tergroup) <- c(levels(tergroup), "Lockerbie"
 , "Paris Attacks")
@@ -120,16 +118,14 @@ gtdgroups$tergroup == "Unknown"
 gtdgroups <- rbind(gtdgroups, list(2015, 11, "Paris Attacks", 130))
 gtdgroups$tergroup <- make.names(gtdgroups$tergroup)
 
-tervars <- read.csv("tervars.csv", stringsAsFactors = FALSE)
-tervars <- tervars %>% mutate(tergroup = make.names(tergroup)) %>%
-  dplyr::select(tergroup, intext)
-
+load("C:/Dev/Study/R/R_Basics/tervars.RData")
+tervars <- tervars %>% mutate(tergroup = make.names(tergroup)) 
 gtdgroups <- left_join(gtdgroups, tervars) %>%
 mutate(tergroup = factor(tergroup)
 , International.Extremism = factor(intext, labels = c("No", "Yes")))
 ```
 
-Of all the deaths from terrorism recorded in the database since 1970 - 2014, how many are from Intenational terrorism?
+My first question, of all the deaths from terrorism recorded in the database since 1970 (plus 130 from Paris 2015), how many are from Intenational terrorism?
 
 ```{r AllDeaths}
 DeathsAll <- with(gtdgroups, tapply(fatalities, International.Extremism, sum))
@@ -138,14 +134,14 @@ cat("International.Extremism\n", names(DeathsAll), "\n", DeathsAll)
 
 Judging by the numbers here, `r round(DeathsAll[1]/DeathsAll[2],1)` times as many deaths were caused by localised terrorism between 1970 and 2015. 
 
-Given many of these groups have been much quieter since September 11th bombings of 2001 and we've had the Good Friday Agreement (GFA) working well since December 1999, it might help to look at the balance since the GFA:
+Given many of these localised groups have been much quieter since September 11th bombings of 2001 and we've had the Good Friday Agreement (GFA) working well since December 1999, it might help to look at the balance since the GFA:
   
 ```{r PostGFADeats}
 DeathsGFA <- with(gtdgroups[as.numeric(as.character(gtdgroups$year)) >= 2000,], tapply(fatalities, International.Extremism, sum))
 cat("International.Extremism\n", names(DeathsGFA), "\n", DeathsGFA)
 ```
 
-The balance has shifted to `r round(DeathsGFA[2]/DeathsGFA[1],1)` as many deaths from international terrorists as localised terrorism. The international threat must feel more current, but is still altogether out of balance given the totals.
+The balance has shifted to `r round(DeathsGFA[2]/DeathsGFA[1],1)` times as many deaths from international terrorists as localised terrorism. The international threat must feel more current, but is still altogether out of balance given the totals.
 
 Here's the same graph with the local vs international split highlighted:
 
@@ -160,7 +156,7 @@ coord_flip() + theme_bw() + theme(legend.position="top"
 labs(title = "Victims of Terrorist Attacks in Western Europe", y = "Number of fatalities", x = "Year")
 ```
 
-One could conclude that those `r DeathsGFA[2]` deaths caused by global terrorists in the years since the GFA are almost entirely accounted for in Madrid and London bombings and the Paris attacks. Clearly these are very deadly incidents.
+One could conclude that those `r DeathsGFA[2]` deaths caused by global terrorists in the years since the GFA are almost entirely accounted for in Madrid and London bombings and the Paris attacks. Clearly these are very deadly incidents. However, it is now easy to pick out some equally large events in the data going back to the 1970's and 1980's it would be useful see if the lethality of the attacks has changed over time.
 
 What is the average number of deaths per incident (rounded to nearest integer)?
 
@@ -176,7 +172,9 @@ DeathsGFAAve <- with(gtdgroups[as.numeric(as.character(gtdgroups$year)) >= 2000,
 cat("International.Extremism\n", names(DeathsGFAAve), "\n", round(DeathsGFAAve, 0))
 ```
 
-The modern extremist threat is a lot more deadly per incident, but also a good deal more rare. This is something else that can easily be visualised:
+Looking at average death toll alone seems to indicate that when they strike, the international terrorists are deadlier. They appear to have become much deadlier per incident in the last 15 years. However, this simplistic explanation does not tell the whole story, as we shall see.
+
+The following two graphs restate the same data as counts of numbers of incidents that result in fatalities:
 
 ```{r intextCountPlot}
 gg2 <- ggplot(data = gtdgroups
@@ -191,9 +189,9 @@ resulting in fatality in Western Europe"
 , y = "Number of incidents", x = "Year")
 ```
 
-Here, the localised terror groups absolutely dominate the graph, indicating that there was a far more constant and continuous threat in the past. All incidents are rapidly diminishing in number to the present day.
+Here, the localised terror groups absolutely dominate the graph. It's also obvious that there was a far greater, more constant and continuous threat in the past. All incidents are rapidly diminishing in number to the present day.
 
-Extracting the international extremist incidents and looking at them separately gives the following rather revealing graph:
+Looking at the international incidents alone, we can see that they follow the same trend, decreasing in number since the 1970's-80's:
 
 ```{r extCountPlot}
 gg3 <- ggplot(data = gtdgroups[gtdgroups$International.Extremism == "Yes",]
@@ -208,173 +206,425 @@ resulting in fatality in Western Europe"
 , y = "Number of incidents", x = "Year")
 ```
 
-This is the clearest evidence that not only are global terror attacks are much rarer than localised groups over period 1970-2015, they have also become far more rare in recent years since the 1990's. This is counter to the suggestion that there is a greater danger now.
-
-What is clear is that when they strike they are much deadlier per incident and are therefore more newsworthy. This corroborates the point of the original post, that cognitive bias accounts for our fear, not the facts. 
+This is the clearest evidence that not only are global terror attacks are much rarer than localised groups over period 1970-2015, they have also become far more rare in recent years since the 1990's. 
 
 ## Statistical Modeling
 
-To take this further, I thought it might be interesting to produce some statistical models to describe the distribution and intensity of the attacks over the years and then go on to examine what such a model might tell us about the likelihood and magnitude of future attacks. It may be possible to determine the level of intensity (in number of deaths per incident) where we can say there is a greater danger now than before.
+This is a purely theoretical exercise not intended to be taken as a prediction or forecast. Even though I have projected my models into the next 5 year space, there are so many volatile factors that this picture could change dramatically and upredictably at any time. I'm looking at trends over time and not taking any influential factors in to consideration.
 
-This is a purely theoretical exercise not intended to be taken as a reliable prediction or forecast.
+I only consider the variables discussed so far. There is the number of incidents and the number of fatalities (per incident) either of which could be a response variable. Rather than using the year, I drill down to the month to make it easier to fit a more even distribution.
 
-Keeping things really simple, I'll only consider the variables discussed so far. There is the number of incidents and the number of fatalities (per incident) either of which could be a response variable. The year and the category, international ("No", "Yes") will be used to make a forecast. In addition, I'll bring in the month to make a more fine grained attempt and analysis time between incidents.
+Please see the appendix for a detailed overview of the model fitting.
 
 ```{r numberOfIncidentsData}
-gtdgroups$yr <- as.numeric(as.character(gtdgroups$year)) - 1970
-gtdgroups$Year <- as.numeric(as.character(gtdgroups$year))
-gtdgroups$ieCols <- ifelse(gtdgroups$International.Extremism == "No"
-                           , intextCols[1], intextCols[2])
-gtd.grid <- expand.grid(0:50, c("No", "Yes"))
-names(gtd.grid) <- c("yr", "International.Extremism")
-
-ninc <- tapply(gtdgroups$International.Extremism, gtdgroups$Year, function(x) 
-{sum(1 * (x == "No")) })
-yinc <- tapply(gtdgroups$International.Extremism, gtdgroups$Year, function(x) 
-{sum(1 * (x == "Yes")) })
-```
-
-Poisson glm is a natural choice for number of incidents as a baseline. For number of fatalities, the Gamma distribution is considered as it is a two parameter model used to model and aggregate of frequency and size/magnitude e.g. size of [insurance claims, rainfall](https://en.wikipedia.org/wiki/Gamma_distribution#Applications).
-
-Testing goodness of fit:
-
-```{r}
-ninc.pois <- goodfit(table(ninc), type = "poisson")
-sum.ninc.pois <- summary(ninc.pois)
-unlist(ninc.pois$par)
-plot(ninc.pois, shade = TRUE, main = "poisson model")
-```
-
-This is a disasterous fit.
-
-```{r}
-ninc.nbin <- goodfit(table(ninc), type = "nbinomial")
-sum.ninc.nbin <- summary(ninc.nbin)
-unlist(ninc.nbin$par)
-plot(ninc.nbin, shade = TRUE, main = "negative binomial model")
-```
-
-This is also terrible.
-
-```{r}
-distplot(table(ninc))
-```
-
-Explain why this is OK/not OK.
-
-```{r}
-nincs <- data.frame(ninc, yr = 0:44)
-gtn.glm1 <- glm(ninc~yr, data = nincs
-                , family = negative.binomial(theta = 2.3445524, link=log))
-anova(gtn.glm1, test = "Chisq")
-plot(ninc~yr, data = nincs)
-points(predict(gtn.glm1, type = "response")~yr, data = nincs, col = "red")
-```
-
-```{r}
-gtn.glm2 <- glm(ninc+1~yr, data = nincs
-                , family = Gamma(link=log))
-anova(gtn.glm2, test = "Chisq")
-plot(ninc~yr, data = nincs)
-points(predict(gtn.glm2, type = "response")~yr, data = nincs, col = "red")
-```
-
-```{r}
-gtn.glm3 <- glm(ninc+1~yr, data = nincs
-                , family = poisson)
-anova(gtn.glm3, test = "Chisq")
-plot(ninc~yr, data = nincs)
-points(predict(gtn.glm3, type = "response")~yr, data = nincs, col = "red")
-```
-
-```{r}
-gtn.glm4 <- glm(ninc+1~poly(yr,4), data = nincs
-                , family = Gamma(link=log))
-anova(gtn.glm4, test = "Chisq")
-plot(ninc~yr, data = nincs)
-points(predict(gtn.glm4, type = "response")~yr, data = nincs, col = "red")
-```
-
-Extremism = "Yes"
-
-Testing goodness of fit:
-
-```{r}
-yinc.pois <- goodfit(table(yinc), type = "poisson")
-sum.yinc.pois <- summary(yinc.pois)
-unlist(yinc.pois$par)
-plot(yinc.pois, shade = TRUE, main = "poisson model")
-```
-
-```{r}
-yinc.nbin <- goodfit(table(yinc), type = "nbinomial")
-sum.yinc.nbin <- summary(yinc.nbin)
-unlist(yinc.nbin$par)
-plot(yinc.nbin, shade = TRUE, main = "negative binomial model")
-```
-
-```{r}
-yinc.nbin <- goodfit(table(yinc), type = "nbinomial", par = list(size = 1))
-sum.yinc.nbin <- summary(yinc.nbin)
-unlist(yinc.nbin$par)
-plot(yinc.nbin, shade = TRUE, main = "gemoetric model")
-```
-
-Again the nbinom is selected
-
-```{r}
-# linear & poly terms
-yincs <- data.frame(yinc, yr = 0:44)
-gty.glm1 <- glm(yinc~ns(yr,3), data = yincs
-                , family = negative.binomial(theta = 2.3445524, link=log))
-anova(gty.glm1, test = "Chisq")
-plot(yinc~yr, data = yincs, xlim = c(0, 50))
-lines(0:50, predict(gty.glm1, data.frame(yr = 0:50), type = "response"), col = "red")
-lines(loess.smooth(yincs$yr, yincs$yinc, span = 0.5, degree = 3))
-```
-
-Gamma could model times between. If go to months.
-
-```{r}
-gtd.glm1 <- glm(fatalities~poly(yr,2) * International.Extremism
-                , data = gtdgroups, family = Gamma(link=log))
-```
-
-```{r}
-gtd.glm1 <- glm(fatalities~yr * International.Extremism
-                , data = gtdgroups
-                , family = negative.binomial(theta = 2.3445524, link=log))
-
-anova(gtd.glm1, test = "Chisq")
-
-gtd.preds1 <- data.frame(fatalities = predict(gtd.glm1, gtd.grid
-                                              , type = "response"
-                                              , se = TRUE), gtd.grid)
-gtd.preds1 <- within(gtd.preds1, {
-  ci.lwr <- fatalities.fit - 1.96 * fatalities.se.fit
-  ci.upr <- fatalities.fit + 1.96 * fatalities.se.fit
-  Year <- yr + 1970
+gtdgroups <- within(gtdgroups, {
+  yr <- as.numeric(as.character(year)) - 1970
+  Year <- as.numeric(as.character(year))
+  mnth <- as.numeric(as.vector(month))
+  yrmnth <- yr * 12 + mnth
   ieCols <- ifelse(International.Extremism == "No"
                    , intextCols[1], intextCols[2])
 })
 
-plot(fatalities ~ Year, data = gtdgroups, col = ieCols, pch = ".", ylim = c(0,150))
+nincm <- tapply(gtdgroups$International.Extremism, gtdgroups$yrmnth, function(x) 
+{sum(1 * (x == "No")) })
 
-with(gtd.preds1[gtd.preds1$International.Extremism == "No",]
-     , polygon(c(Year, rev(Year))
-               , c(ci.upr, rev(ci.lwr))
-               , col=rgb(1,0,0,0.4), border=NA))
-lines(fatalities.fit ~ Year, data = gtd.preds1, col = ieCols
-      , subset = International.Extremism == "No")
+yincm <- tapply(gtdgroups$International.Extremism, gtdgroups$yrmnth, function(x) 
+{sum(1 * (x == "Yes")) })
+```
 
-with(gtd.preds1[gtd.preds1$International.Extremism == "Yes",]
-     , polygon(c(Year, rev(Year))
+```{r nincPoisFit, fig.height=4, fig.width=4, results='hide', fig.show='hide'}
+ninc.pois <- goodfit(table(nincm), type = "poisson")
+sum.ninc.pois <- summary(ninc.pois)
+unlist(ninc.pois$par)
+plot(ninc.pois, shade = TRUE
+     , main = "poisson model"
+     , xlab = "Number of incidents in a given month")
+distplot(table(nincm), lambda = 4.28
+        , xlab = "Number of incidents in a given month")
+```
+
+```{r nincNbinomFit, fig.height=4, fig.width=4, results='hide', fig.show='hide'}
+ninc.nbin <- goodfit(table(nincm), type = "nbinomial")
+sum.ninc.nbin <- summary(ninc.nbin)
+unlist(ninc.nbin$par)
+plot(ninc.nbin, shade = TRUE
+    , main = "negative binomial model"
+    , xlab = "Number of incidents in a given month")
+distplot(table(nincm), type = "nbinomial"
+        , xlab = "Number of incidents in a given month")
+```
+
+```{r nincNbinomGLM, results="hide"}
+nincs <- data.frame(nIncidents = nincm, nMonthsSinceJan1970 = as.numeric(rownames(nincm)))
+
+yrmnth.grid <- data.frame(nMonthsSinceJan1970 = 1:600)
+
+gtn.glm <- glm(nIncidents~nMonthsSinceJan1970
+                , data = nincs
+                , family = negative.binomial(
+                  theta = unlist(ninc.nbin$par)[1]
+                  , link=log
+                  )
+                )
+
+gtn.ns5 <- glm(nIncidents~ns(nMonthsSinceJan1970,5)
+                , data = nincs
+                , family = negative.binomial(
+                  theta = unlist(ninc.nbin$par)[1]
+                  , link=log
+                  )
+                )
+anova(gtn.ns5, test = "Chisq")
+```
+
+```{r nincNbinomGLMplot}
+gtn.glm.preds <- predict(gtn.glm, newdata = yrmnth.grid
+                         ,type = "response"
+                         , se = TRUE)
+
+gtn.glm.preds <- within(gtn.glm.preds, {
+  ci.upr <- fit + 1.96 * se.fit
+  ci.lwr <- fit - 1.96 * se.fit
+})
+
+gtn.ns5.preds <- predict(gtn.ns5, newdata = yrmnth.grid
+                         ,type = "response"
+                         , se = TRUE)
+
+gtn.ns5.preds <- within(gtn.ns5.preds, {
+  ci.upr <- fit + 1.96 * se.fit
+  ci.lwr <- fit - 1.96 * se.fit
+})
+
+plot(nIncidents~nMonthsSinceJan1970
+     , data = nincs, xlim = c(0,600)
+     , xaxt = "n"
+     , col = intextCols[1]
+     , pch = 20, cex =0.5
+     , xlab = "Year"
+     , ylab = "Incidents in a given month"
+     , main = "Frequency of fatal terrorist actions\n (local, non-international)")
+
+axis(side = 1, at = seq(0, 600, 60), labels = seq(0, 600, 60)/12 +1970)
+
+with(gtn.glm.preds
+     , polygon(c(1:600,600:1)
                , c(ci.upr, rev(ci.lwr))
-               , col=rgb(0,0,1,0.2), border=NA))
-lines(fatalities.fit ~ Year, data = gtd.preds1, col = ieCols
-      , subset = International.Extremism == "Yes")
+               , col=rgb(0,0.8,0.5,0.2), border=NA))
+lines(1:600, gtn.glm.preds$fit, col = "aquamarine3", lwd = 3)
+
+with(gtn.ns5.preds
+     , polygon(c(1:600,600:1)
+               , c(ci.upr, rev(ci.lwr))
+               , col=rgb(1,0.2,0.3,0.2), border=NA))
+lines(1:600, gtn.ns5.preds$fit, col = intextCols[1], lwd = 3)
+
+legend("topright", legend = c("Incident count"
+                              , "n.spline (5 df)"
+                              , "nbinom glm")
+       , title = "Frequency and fit",
+       col = c(intextCols[1], intextCols[1], "aquamarine3")
+       , pch = c(19, NA, NA)
+       , lty = c(NA, 1, 1)
+       , lwd = c(NA, 2, 2))
+```
+
+This plot shows the final model choice, a natural spline with (equivalent) 5 df over the observed data. It does a good job of smoothing the data and showing some historic trends.
+
+I've also plotted the baseline fit from a simple negative binomial glm. It obviously doesn't pick up the non-linear pattern, notably the increase in incident frequency from the 1970's to 1980's, but it's good for emphasising what we know to be true from history; In Western Europe, terrorism from local sources (Nationalism, Republicanism, Revolutionary Communism) has all but disappeared.
+
+```{r yincPoisFit, fig.height=4, fig.width=4, results='hide', fig.show='hide'}
+yinc.pois <- goodfit(table(yincm), type = "poisson")
+sum.yinc.pois <- summary(yinc.pois)
+unlist(yinc.pois$par)
+plot(yinc.pois, shade = TRUE
+     , main = "poisson model"
+     , xlab = "Number of incidents in a given month")
+distplot(table(yincm), lambda = 0.445
+        , xlab = "Number of incidents in a given month")
+```
+
+```{r yincNbinomFit, fig.height=4, fig.width=4, results='hide', fig.show='hide'}
+yinc.nbin <- goodfit(table(yincm), type = "nbinomial")
+sum.yinc.nbin <- summary(yinc.nbin)
+unlist(yinc.nbin$par)
+plot(yinc.nbin, shade = TRUE
+    , main = "negative binomial model"
+    , xlab = "Incidents in a given month")
+distplot(table(yincm), type = "nbinomial"
+        , xlab = "Number of incidents in a given month")
+```
+
+I follow the same fitting process with the international extremists and came up with the same final model, shown here: 
+
+```{r, yincNbinomGLM, results='hide'}
+yincs <- data.frame(nIncidents = yincm, nMonthsSinceJan1970 = as.numeric(rownames(yincm)))
+
+gty.glm <- glm(nIncidents~nMonthsSinceJan1970
+                , data = yincs
+                , family = negative.binomial(
+                  theta = unlist(yinc.nbin$par)[1]
+                  , link=log
+                  )
+                )
+
+gty.ns5 <- glm(nIncidents~ns(nMonthsSinceJan1970,5)
+                , data = yincs
+                , family = negative.binomial(
+                  theta = unlist(yinc.nbin$par)[1]
+                  , link=log
+                  )
+                )
+anova(gty.ns5, test = "Chisq")
 
 ```
+
+```{r yincNbinomGLMplot}
+gty.glm.preds <- predict(gty.glm, newdata = yrmnth.grid
+                         ,type = "response"
+                         , se = TRUE)
+
+gty.glm.preds <- within(gty.glm.preds, {
+  ci.upr <- fit + 1.96 * se.fit
+  ci.lwr <- fit - 1.96 * se.fit
+})
+
+gty.ns5.preds <- predict(gty.ns5, newdata = yrmnth.grid
+                         ,type = "response"
+                         , se = TRUE)
+
+gty.ns5.preds <- within(gty.ns5.preds, {
+  ci.upr <- fit + 1.96 * se.fit
+  ci.lwr <- fit - 1.96 * se.fit
+})
+
+plot(nIncidents~nMonthsSinceJan1970, data = yincs[yincs$nIncidents > 0,]
+     , xlim = c(0,600)
+     , ylim = c(0, 3)
+     , xaxt = "n"
+     , yaxp = c(0, 3, 3)
+     , col = intextCols[2]
+     , pch = 20, cex =0.5
+     , xlab = "Year"
+     , ylab = "Incidents in a given month"
+     , main = "Frequency of fatal terrorist actions\n (international in Western Europe)")
+
+axis(side = 1, at = seq(0, 600, 60), labels = seq(0, 600, 60)/12 +1970)
+
+with(gty.glm.preds
+     , polygon(c(1:600,600:1)
+               , c(ci.upr, rev(ci.lwr))
+               , col=rgb(0,0.8,0.5,0.2), border=NA))
+lines(1:600, gty.glm.preds$fit, col = "aquamarine3", lwd = 3)
+
+with(gty.ns5.preds
+     , polygon(c(1:600,600:1)
+               , c(ci.upr, rev(ci.lwr))
+               , col=rgb(0.2,0.3,1,0.2), border=NA))
+lines(1:600, gty.ns5.preds$fit, col = intextCols[2], lwd = 3)
+
+legend("topright", legend = c("Incident count"
+                              , "n.spline (5 df)"
+                              , "nbinom glm")
+       , title = "Frequency and fit",
+       col = c(intextCols[2], intextCols[2], "aquamarine3")
+       , pch = c(19, NA, NA)
+       , lty = c(NA, 1, 1)
+       , lwd = c(NA, 2, 2))
+```
+
+Here we see, in contrast to the dominant narrative, a flat trend at 0 incidents in a given month since 1995. There is a hint of an uplift after mid 2000's though this is accompanied by large confidence intervals, given the sparsity of data (i.e. real incidents) in this region of the chart. The baseline glm only captures a decreasing trend.
+
+Moving on to consider the number of fatalities:
+
+```{r fatalitiesData}
+fatm <- tapply(gtdgroups$fatalities, INDEX = list(gtdgroups$International.Extremism, gtdgroups$yrmnth), FUN = sum)
+
+fatm <- data.frame(ftable(fatm)) %>%
+  filter(!(is.na(Freq))) %>%
+  rename(International.Extremism = Var1
+         , nMonthsSinceJan1970 = Var2
+         , fatalities = Freq) %>%
+  mutate(International.Extremism = factor(International.Extremism, levels = c("No", "Yes"))
+         , nMonthsSinceJan1970 = as.numeric(as.vector(nMonthsSinceJan1970))
+         )
+
+nfatm <- data.frame(fatm[fatm$International.Extremism == "No",])
+yfatm <- data.frame(fatm[fatm$International.Extremism == "Yes",])
+```
+
+```{r nfatNbinomGLM, results='hide'}
+gtf.glm <- glm(fatalities~nMonthsSinceJan1970, data = nfatm
+                , family = negative.binomial(theta = 0.2, link=log))
+
+gtf.nlm <- glm(fatalities~ns(nMonthsSinceJan1970,3), data = nfatm
+                , family = negative.binomial(theta = 0.2, link=log))
+anova(gtf.nlm, test = "Chisq")
+```
+
+```{r nfatNbinomGLMplot}
+gtf.glm.preds <- predict(gtf.glm, newdata = yrmnth.grid
+                         #, type = "response"
+                         , se = TRUE)
+
+gtf.glm.preds <- within(gtf.glm.preds, {
+  ci.upr <- fit + 1.96 * se.fit
+  ci.lwr <- fit - 1.96 * se.fit
+})
+
+gtf.nlm.preds <- predict(gtf.nlm, newdata = yrmnth.grid
+                         #, type = "response"
+                         , se = TRUE)
+
+gtf.nlm.preds <- within(gtf.nlm.preds, {
+  ci.upr <- fit + 1.96 * se.fit
+  ci.lwr <- fit - 1.96 * se.fit
+})
+
+plot(log(fatalities)~nMonthsSinceJan1970
+     , data = nfatm, xlim = c(0,600)
+     , xaxt = "n"
+     , col = intextCols[1]
+     , pch = 20, cex =0.5
+     , xlab = "Year"
+     , ylab = "log(Fatalities)"
+     , main = "Fatalities from terrorist actions\n (local, non-international)")
+
+axis(side = 1, at = seq(0, 600, 60), labels = seq(0, 600, 60)/12 +1970)
+
+with(gtf.glm.preds
+     , polygon(c(1:600,600:1)
+               , c(ci.upr, rev(ci.lwr))
+               , col=rgb(0,0.8,0.5,0.2), border=NA))
+lines(1:600, gtf.glm.preds$fit, col = "aquamarine3", lwd = 3)
+
+with(gtf.nlm.preds
+     , polygon(c(1:600,600:1)
+               , c(ci.upr, rev(ci.lwr))
+               , col=rgb(1,0.2,0.3,0.2), border=NA))
+lines(1:600, gtf.nlm.preds$fit, col = intextCols[1], lwd = 3)
+
+legend("topright", legend = c("log(fatalities)"
+                              , "nspline (3 df)"
+                              , "nbinom glm")
+       , cex = 0.7
+       , col = c(intextCols[1], intextCols[1], "aquamarine3")
+       , pch = c(19, NA, NA)
+       , lty = c(NA, 1, 1)
+       , lwd = c(NA, 2, 2))
+
+points(499, log(77), col = "red", cex = 1.5)
+text(499, log(77), pos = 2, "Norway, 2011")
+```
+
+Here, the steady downward trend on the glm is obvious. The exponentiated slope coefficients from the glm are:
+
+```{r glmCoefs}
+exp(confint(gtf.glm))
+```
+
+From our log scale this translates to `r round((1 - exp(confint(gtf.glm))[2,2]) * 100, 2) `-`r round((1 - exp(confint(gtf.glm))[2,1]) * 100, 2) `% reduction in death tolls per month, starting from an estimated rate from a starting rate of $\approx$ `r round(exp(confint(gtf.glm))[1,1], 0) `-`r round(exp(confint(gtf.glm))[1,2], 0)` in 1970 to `r round(exp(confint(gtf.glm))[1,1] * exp(confint(gtf.glm))[2,1]^552,0)`-`r round(exp(confint(gtf.glm))[1,2] * exp(confint(gtf.glm))[2,2]^552,0)` in 2015.
+
+This is a gross approximation and as the spline shows, there are influential points which cause the line to be unstable at the extremities, such as the attack by white supremecist Anders Breivik in Norway, 2011 (indicated).
+
+I continue along the same lines for the international extremist terror threat:
+
+```{r yfatNbinomGLM, results='hide'}
+gtf.glm <- glm(fatalities~nMonthsSinceJan1970, data = yfatm
+                , family = negative.binomial(theta = 0.2, link=log))
+
+gtf.nlm <- glm(fatalities~ns(nMonthsSinceJan1970,3), data = yfatm
+                , family = negative.binomial(theta = 0.2, link=log))
+anova(gtf.nlm, test = "Chisq")
+```
+
+```{r yfatNbinomGLMplot}
+gtf.glm.preds <- predict(gtf.glm, newdata = yrmnth.grid
+                         #, type = "response"
+                         , se = TRUE)
+
+gtf.glm.preds <- within(gtf.glm.preds, {
+  ci.upr <- fit + 1.96 * se.fit
+  ci.lwr <- fit - 1.96 * se.fit
+})
+
+gtf.nlm.preds <- predict(gtf.nlm, newdata = yrmnth.grid
+                         #, type = "response"
+                         , se = TRUE)
+
+gtf.nlm.preds <- within(gtf.nlm.preds, {
+  ci.upr <- fit + 1.96 * se.fit
+  ci.lwr <- fit - 1.96 * se.fit
+})
+
+plot(log(fatalities)~nMonthsSinceJan1970
+     , data = yfatm, xlim = c(0,600)
+     , xaxt = "n"
+     , col = intextCols[2]
+     , pch = 20, cex =0.5
+     , xlab = "Year"
+     , ylab = "log(Fatalities)"
+     , main = "Fatalities from terrorist actions\n (international in Western Europe)")
+
+axis(side = 1, at = seq(0, 600, 60), labels = seq(0, 600, 60)/12 +1970)
+
+with(gtf.glm.preds
+     , polygon(c(1:600,600:1)
+               , c(ci.upr, rev(ci.lwr))
+               , col=rgb(0,0.8,0.5,0.2), border=NA))
+lines(1:600, gtf.glm.preds$fit, col = "aquamarine3", lwd = 3)
+
+with(gtf.nlm.preds
+     , polygon(c(1:600,600:1)
+               , c(ci.upr, rev(ci.lwr))
+               , col=rgb(0.2,0.3,1,0.2), border=NA))
+lines(1:600, gtf.nlm.preds$fit, col = intextCols[2], lwd = 3)
+
+legend("bottomright", legend = c("log(fatalities)"
+                              , "nspline (3 df)"
+                              , "nbinom glm")
+       , cex = 0.7
+       , col = c(intextCols[2], intextCols[2], "aquamarine3")
+       , pch = c(19, NA, NA)
+       , lty = c(NA, 1, 1)
+       , lwd = c(NA, 2, 2))
+
+points(c(411,427,551)
+       , log(c(191, 56, 130))
+       , col = "red", cex = 1.5)
+text(c(411,427,551)
+     , log(c(191, 56, 130))
+     , pos = c(2,4,2)
+     , cex = 0.8
+     , c("Madrid, 2004"
+         , "London 2005"
+         , "Paris 2015"))
+
+points(c(2, 191,57,228)
+       , log(c(55, 60, 88, 270))
+       , col = "red", cex = 1.5)
+text(c(2, 191,57,228), log(c(55, 60, 88, 270))
+     , pos = c(4, 4,4,2)
+     , cex = 0.8
+     , c("Swissair Flight 330"
+         , "EgyptAir Flight 648"
+         , "TWA Flight 841"
+         , "Pan Am Flight 103"))
+```
+
+Here we see a linear trend in the opposite direction. However, given the sparsity of data points later than 1990 and before 1975, the confidence intervals are absolutely enormous and include the posibility of a zero or negative slope. Also, the natural spline is wildly unstable at the extremities. 
+
+The last three points represent Madrid, London and Paris respectively, which have incredible influence on the model and make it very problematic to calculate the ranges. The model doesn't converge and R only returns an error for the call:
+
+```{r glmCoefs2, echo=TRUE}
+# not run
+# exp(confint(gtf.glm))
+```
+
+What the model does serve to illustrate is an explanation for the increase in the fatality rate calculated in the previous section. Clearly it's only lower on average in the 1970's and 1980's because of the prevalence of low level international terror attacks during this time period. 
+
+The four catastrophic flight bombings easily rival the death tolls of more recent attacks. However, their influnce on the local average is mediated by a cloud of points with lower y values. Perhaps the attacks in 2004, 2005 and 2015 seem so devastating precisely because there is no longer a continuous background noise from lower scaled attacks.
 
 ### Appendices
 The original chart from the [article in the Huffington Post](http://www.huffingtonpost.co.uk/2015/11/28/islamic-state-terrorism-threat_n_8670458.html)
@@ -383,7 +633,67 @@ The original chart from the [article in the Huffington Post](http://www.huffingt
 
 [1]: GTD_files\\figure-html\\o-TERRORISM-570.jpg "Victims of Terrorist Attacks in Western Europe"
 
+### Model fitting
+
+The following methods and tools are described in detail in (Friendly et al)[2]
+
+A poisson glm is a natural choice for number of incidents as a baseline. I also try a negative binomial has similar applications and allows for over dispersion ($\sigma > \mu$) [2]. 
+
+Testing goodness of fit using tools from the vcd Package[3] and beginning with the localised, non-International terrorists
+
+```{r nincPoisFit, fig.height=4, fig.width=4}
+```
+
+This is a not a disasterous fit, but it could be better.
+
+```{r nincNbinomFit, fig.height=4, fig.width=4}
+```
+
+Overall the negative binomial is a moderately better fit for modeling the frequency of terrorist incidents by non-International extremists.
+
+A number of model fits were attempted. Here I show only the final choice, a natural spline with (equivalent) 5 df. This produced the lowest deviance, but is by no means a particularly good fit. 
+
+```{r nincNbinomGLM}
+```
+
+I go through the same fitting process with the international extremists:
+
+```{r yincPoisFit, fig.height=4, fig.width=4}
+```
+
+This is a much more satisfactory fit, on much fewer data points.
+
+```{r yincNbinomFit, fig.height=4, fig.width=4}
+```
+
+The Negative Binomial distribution is the better for modeling in this case also.
+
+Again, a few models were tried. Here I only show the final selection (again a natural spline with 5 df).
+
+```{r yincNbinomGLM}
+```
+
+Moving on to consider the number of fatalities, here the goodness of fit tests break down (not shown). I proceeded with a little trial and error to find a reasonable model and settled again on the negative binomial with a natural spline of 3 df. A big problem for these continuous distributions is the very wide range of possible values and the high number of sampling zeros. One avenue I did not follow is coarser binning over e.g. 5 or 10 years.
+
+```{r fatalitiesData}
+```
+
+Here is the final model fitting for the number of fatalities in a given month.
+
+Not international:
+
+```{r nfatNbinomGLM}
+```
+
+International:
+
+```{r yfatNbinomGLM}
+```
+
+### Categorisation of the terrorist groups
+
 The catogories applied to the various terror groups. Lockerbie was listed under "Unknown" but was easy to single out and label. Paris Attacks are also individually marked as this point has been added in. Any advice on making it more accurate is most welcome:
+
   
 ```{r}
 cats <- unique(gtdgroups[, c("tergroup", "International.Extremism")])
@@ -391,3 +701,9 @@ cats[,1] <- abbreviate(as.character(cats[,1]), minlength = 40)
 cats
 ```
 
+### References
+
+[2] Friendly, Michael. Discrete Data Analysis with R. Chapman and Hall/CRC, 2015.
+
+[3] David Meyer, Achim Zeileis, and Kurt Hornik (2015).
+vcd: Visualizing Categorical Data. R package version 1.4-1.
