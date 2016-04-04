@@ -515,4 +515,3 @@ distplot(HoF, type = "nbinom")
 ```
 
 *Again, the negative binomial is a much better fit.*
-

@@ -13,6 +13,7 @@ require(reshape2)
 require(ggplot2)
 require(vcd)
 require(splines)
+require(car)
 ```
 
 ---
@@ -24,7 +25,7 @@ output: html_document
 
 ## Introduction
 
-This post is inspired by a recent [article in the Huffington Post](http://www.huffingtonpost.co.uk/2015/11/28/islamic-state-terrorism-threat_n_8670458.html) which contained a [barchart of fatalities][1] caused by terrorism in 5 Western European countries over the years since 1970.
+This post is inspired by a recent [article in the Huffington Post](http://www.huffingtonpost.co.uk/2015/11/28/islamic-state-terrorism-threat_n_8670458.html) which contained a barchart (see appendices) of fatalities caused by terrorism in Western Europe over the years since 1970.
 
 The original source of the data is the [Global Terrorism Database](https://www.start.umd.edu/gtd/), which is freely available to download.
 
@@ -38,9 +39,9 @@ Essentially these comments serve well to emphasise my point. Can we say that peo
 
 This inspired me to do my own analysis of the [Global Terrorism Database](https://www.start.umd.edu/gtd/) to see what (objective) stories the data has to tell and help to cut through some of the political noise and cognitive bias that surrounds such an emotive topic:
 
-## Exporatory Analysis
+## Exploratory Analysis
 
-The first thing I did was make sure I could reproduce the [original plot][1] (or something close), given the same source data:
+The first thing I did was make sure I could reproduce the original plot (or something close), given the same source data:
 
 ```{r getDataLocal, cache=TRUE}
 gtd <- read_csv("gtd.csv")
@@ -57,6 +58,7 @@ gtdwe <- within(gtdwe, {
                         , country_txt, "Other")
   imonth[eventid == 197400000001] <- 4 # Red Brigades Genoa 1974 Kidnapping
 })
+rm("gtd")
 ```
 
 ```{r basePlotData}
@@ -79,12 +81,12 @@ gg <- ggplot(data = gtdfatals
              , aes(x = year, y = fatalities, fill = country))
 gg + geom_bar(stat = "identity", colour = "lightgrey") + 
   scale_fill_manual(values=c("darkgrey", "steelblue", "darkgreen", "gold", "red", "lightblue")) +
-  coord_flip() + theme_bw() + theme(legend.position="top"
-                                    , axis.text.y = element_text(size=6)) +
+  coord_flip() + theme_bw() + scale_x_discrete(drop = FALSE) +
+  theme(legend.position="top", axis.text.y = element_text(size=6)) +
   labs(title = "Victims of Terrorist Attacks in Western Europe", y = "Number of fatalities", x = "Year")
 ```
 
-This is an adequate replica.
+This is an adequate replica. See the appendices for the original.
 
 The freely available [Global Terrorism Database](https://www.start.umd.edu/gtd/) contains data only up to 2014. Huffington Post's statistical consultant probably added 2015-16 from other sources, although they don't tell us that. I've added a value of [130](https://en.wikipedia.org/wiki/November_2015_Paris_attacks#Casualties) fatalities in France for 2015. There is an entry for the Red Brigades 1974 hostage taking in Genoa with 1 killed which has month set as zero. [I have updated this to April](https://web.stanford.edu/group/mappingmilitants/cgi-bin/groups/view/77)
 
@@ -94,7 +96,7 @@ To examine more closely the different trends in localised terrorism compared to 
 
 The [Global Terrorism Database](https://www.start.umd.edu/gtd/) does not make this distinction explicit. 
 
-I went through the list and labelled all the groups that I could be sure about (e.g. Basque separatists and Irish Republicans, compared to Secret Organization of al Qa ida in Europe). I share my categories in the appendices.
+I went through the list and labelled all the groups that I could be sure about (e.g. Basque separatists and Irish Republicans, compared to Secret Organization of al Qa'ida in Europe). I share my categories in the appendices.
 
 ```{r groupsData}
 gtdgroups <- tapply(gtdwe$nkill
@@ -125,7 +127,7 @@ mutate(tergroup = factor(tergroup)
 , International.Extremism = factor(intext, labels = c("No", "Yes")))
 ```
 
-My first question, of all the deaths from terrorism recorded in the database since 1970 (plus 130 from Paris 2015), how many are from Intenational terrorism?
+My first question, of all the deaths from terrorism recorded in the database since 1970 (plus 130 from Paris 2015), how many are from International terrorism?
 
 ```{r AllDeaths}
 DeathsAll <- with(gtdgroups, tapply(fatalities, International.Extremism, sum))
@@ -151,12 +153,12 @@ gg <- ggplot(data = gtdgroups
 , aes(x = year, y = fatalities)) +
 scale_fill_manual(values=intextCols)
 gg + geom_bar(stat = "identity", aes(fill = International.Extremism)) +
-coord_flip() + theme_bw() + theme(legend.position="top"
-, axis.text.y  = element_text(size=6)) +
+coord_flip() + theme_bw() + scale_x_discrete(drop = FALSE) +
+  theme(legend.position="top", axis.text.y  = element_text(size=6)) +
 labs(title = "Victims of Terrorist Attacks in Western Europe", y = "Number of fatalities", x = "Year")
 ```
 
-One could conclude that those `r DeathsGFA[2]` deaths caused by global terrorists in the years since the GFA are almost entirely accounted for in Madrid and London bombings and the Paris attacks. Clearly these are very deadly incidents. However, it is now easy to pick out some equally large events in the data going back to the 1970's and 1980's it would be useful see if the lethality of the attacks has changed over time.
+One should conclude that those `r DeathsGFA[2]` deaths caused by global terrorists in the years since the GFA are almost entirely accounted for in Madrid and London bombings and the Paris attacks. Clearly these are very deadly incidents. However, it is now easy to pick out some equally large events in the data going back to the 1970's and 1980's. It would be useful see if the lethality of the attacks has changed over time.
 
 What is the average number of deaths per incident (rounded to nearest integer)?
 
@@ -172,7 +174,7 @@ DeathsGFAAve <- with(gtdgroups[as.numeric(as.character(gtdgroups$year)) >= 2000,
 cat("International.Extremism\n", names(DeathsGFAAve), "\n", round(DeathsGFAAve, 0))
 ```
 
-Looking at average death toll alone seems to indicate that when they strike, the international terrorists are deadlier. They appear to have become much deadlier per incident in the last 15 years. However, this simplistic explanation does not tell the whole story, as we shall see.
+Looking at average death toll alone seems to indicate that when they strike, the international terrorists are deadlier. They appear to have become vastly more deadly per incident in the last 15 years. However, this simplistic explanation does not tell the whole story, as we shall see.
 
 The following two graphs restate the same data as counts of numbers of incidents that result in fatalities:
 
@@ -255,7 +257,7 @@ distplot(table(nincm), type = "nbinomial"
         , xlab = "Number of incidents in a given month")
 ```
 
-```{r nincNbinomGLM, results="hide"}
+```{r nincNbinomGLM, results='hide'}
 nincs <- data.frame(nIncidents = nincm, nMonthsSinceJan1970 = as.numeric(rownames(nincm)))
 
 yrmnth.grid <- data.frame(nMonthsSinceJan1970 = 1:600)
@@ -377,7 +379,6 @@ gty.ns5 <- glm(nIncidents~ns(nMonthsSinceJan1970,5)
                   )
                 )
 anova(gty.ns5, test = "Chisq")
-
 ```
 
 ```{r yincNbinomGLMplot}
@@ -516,9 +517,11 @@ legend("topright", legend = c("log(fatalities)"
 
 points(499, log(77), col = "red", cex = 1.5)
 text(499, log(77), pos = 2, "Norway, 2011")
+
+nf.infl <- gtf.nlm
 ```
 
-Here, the steady downward trend on the glm is obvious. The exponentiated slope coefficients from the glm are:
+Here, the steady downward trend on the glm is obvious. The confidence interval for the exponentiated slope coefficients from the glm are:
 
 ```{r glmCoefs}
 exp(confint(gtf.glm))
@@ -526,7 +529,7 @@ exp(confint(gtf.glm))
 
 From our log scale this translates to `r round((1 - exp(confint(gtf.glm))[2,2]) * 100, 2) `-`r round((1 - exp(confint(gtf.glm))[2,1]) * 100, 2) `% reduction in death tolls per month, starting from an estimated rate from a starting rate of $\approx$ `r round(exp(confint(gtf.glm))[1,1], 0) `-`r round(exp(confint(gtf.glm))[1,2], 0)` in 1970 to `r round(exp(confint(gtf.glm))[1,1] * exp(confint(gtf.glm))[2,1]^552,0)`-`r round(exp(confint(gtf.glm))[1,2] * exp(confint(gtf.glm))[2,2]^552,0)` in 2015.
 
-This is a gross approximation and as the spline shows, there are influential points which cause the line to be unstable at the extremities, such as the attack by white supremecist Anders Breivik in Norway, 2011 (indicated).
+This is a gross approximation but a realistic one. The spline unexpectedly shows a leveling trend in the late 2000's but close inspection shows that it's under the massive influence of a single outlying point; The attack by white supremecist Anders Breivik in Norway, 2011 (indicated). See the appendices for more detail.  
 
 I continue along the same lines for the international extremist terror threat:
 
@@ -611,20 +614,20 @@ text(c(2, 191,57,228), log(c(55, 60, 88, 270))
          , "EgyptAir Flight 648"
          , "TWA Flight 841"
          , "Pan Am Flight 103"))
+
+yf.infl <- gtf.nlm
 ```
 
-Here we see a linear trend in the opposite direction. However, given the sparsity of data points later than 1990 and before 1975, the confidence intervals are absolutely enormous and include the posibility of a zero or negative slope. Also, the natural spline is wildly unstable at the extremities. 
-
-The last three points represent Madrid, London and Paris respectively, which have incredible influence on the model and make it very problematic to calculate the ranges. The model doesn't converge and R only returns an error for the call:
+Here we see a linear trend in the opposite direction. However, given the sparsity of data points later than 1990 and before 1975, the confidence intervals are absolutely enormous and include the posibility of a zero or negative slope. Also, the natural spline is wildly unstable at the extremities and it is very problematic to calculate the ranges. The model doesn't converge and R only returns an error for the call:
 
 ```{r glmCoefs2, echo=TRUE}
 # not run
 # exp(confint(gtf.glm))
 ```
 
-What the model does serve to illustrate is an explanation for the increase in the fatality rate calculated in the previous section. Clearly it's only lower on average in the 1970's and 1980's because of the prevalence of low level international terror attacks during this time period. 
+The three points that represent Madrid, London and Paris dominate both linear and spline models because there are barely any other points at this distance along the x-axis. This serves as an explanation for the increase in the fatality rate calculated in the previous section. Clearly it's only lower on average in the 1970's and 1980's because of the high prevalence of less newsworthy international terror attacks during this time period.
 
-The four catastrophic flight bombings easily rival the death tolls of more recent attacks. However, their influnce on the local average is mediated by a cloud of points with lower y values. Perhaps the attacks in 2004, 2005 and 2015 seem so devastating precisely because there is no longer a continuous background noise from lower scaled attacks.
+The four catastrophic flight bombings easily rival the death tolls of more recent attacks. However, their influnce on the local average is mediated by a cloud of points with lower y values. Perhaps the attacks in 2004, 2005 and 2015 seem so devastating precisely because there is no longer a continuous background noise from smaller scaled incidents.
 
 ### Appendices
 The original chart from the [article in the Huffington Post](http://www.huffingtonpost.co.uk/2015/11/28/islamic-state-terrorism-threat_n_8670458.html)
@@ -637,7 +640,7 @@ The original chart from the [article in the Huffington Post](http://www.huffingt
 
 The following methods and tools are described in detail in (Friendly et al)[2]
 
-A poisson glm is a natural choice for number of incidents as a baseline. I also try a negative binomial has similar applications and allows for over dispersion ($\sigma > \mu$) [2]. 
+A poisson glm is a natural choice for number of incidents as a baseline. I also try a negative binomial has similar applications and allows for over dispersion ($\sigma > \mu$)[2]. 
 
 Testing goodness of fit using tools from the vcd Package[3] and beginning with the localised, non-International terrorists
 
@@ -651,7 +654,7 @@ This is a not a disasterous fit, but it could be better.
 
 Overall the negative binomial is a moderately better fit for modeling the frequency of terrorist incidents by non-International extremists.
 
-A number of model fits were attempted. Here I show only the final choice, a natural spline with (equivalent) 5 df. This produced the lowest deviance, but is by no means a particularly good fit. 
+A number of model fits were attempted. Here I show only the final choice, a natural spline function over the month, indexed at zero for January 1970. The transformed value is regressed using glm and family.negbin[4] with (equivalent) 5 df. This produced the lowest deviance, but is by no means a particularly good fit. 
 
 ```{r nincNbinomGLM}
 ```
@@ -661,19 +664,19 @@ I go through the same fitting process with the international extremists:
 ```{r yincPoisFit, fig.height=4, fig.width=4}
 ```
 
-This is a much more satisfactory fit, on much fewer data points.
+This is a much more satisfactory fit, on fewer data points.
 
 ```{r yincNbinomFit, fig.height=4, fig.width=4}
 ```
 
 The Negative Binomial distribution is the better for modeling in this case also.
 
-Again, a few models were tried. Here I only show the final selection (again a natural spline with 5 df).
+Again, a few models were tried. Here I only show the final selection (again a natural spline with 5 df to transform the month index, then fit as a glm, family.negbin).
 
 ```{r yincNbinomGLM}
 ```
 
-Moving on to consider the number of fatalities, here the goodness of fit tests break down (not shown). I proceeded with a little trial and error to find a reasonable model and settled again on the negative binomial with a natural spline of 3 df. A big problem for these continuous distributions is the very wide range of possible values and the high number of sampling zeros. One avenue I did not follow is coarser binning over e.g. 5 or 10 years.
+Moving on to consider the number of fatalities, here the goodness of fit tests break down (not shown). I proceeded with a little trial and error to find a reasonable model and settled again on the negative binomial with a natural spline of 3 df. A big problem for fitting a continuous distribution is the very wide range of possible values and the high number of sampling zeros in the observed distribution. One avenue I did not follow is coarser binning over e.g. 5 or 10 years.
 
 ```{r fatalitiesData}
 ```
@@ -690,12 +693,28 @@ International:
 ```{r yfatNbinomGLM}
 ```
 
+### Points of Influence in the model fits:
+
+An influencePlot from the car package[5] is an excellent way to visualise the effect of outlying points on a glm model object[2]. To be influential, points need to have leverage (to be distant in some dimension from the majority of other points) and weight (to have a large residual variation after the model is fit, e.g much bigger or much smaller than other points or than the model expects).
+
+The below influence plot shows point 477 is really off the scale in both of these dimensions and the influence plot marks it accordingly. This is the data point for the Anders Breivik attack in Norway. A second point is a good example of a point with high leverage because it is the last point in the sequence with the highest index number, but exerts very little influence because it has a small residual, meaning that the observed point is close to the fitted point on the model. It's roughly where the model says it should be.
+
+```{r nInfluencePlot}
+res <- influencePlot(nf.infl, id.col = "red"
+              , scale = 6, id.n = 1
+              ,	xlab="Hat-Values (leverage measure)"
+              , ylab="Studentized Residuals (poorness of fit)"
+              , main="Influence Plot for spline model\n Fatalities from terrorist actions\n (local, non-international)")
+k <- length(coef(nf.infl))
+n <- nrow(nfatm)
+text(x = c(2, 3) * k / n, y = -1.8, c("2k/n", "3k/n"), cex = 1.2)
+```
+
 ### Categorisation of the terrorist groups
 
 The catogories applied to the various terror groups. Lockerbie was listed under "Unknown" but was easy to single out and label. Paris Attacks are also individually marked as this point has been added in. Any advice on making it more accurate is most welcome:
 
-  
-```{r}
+```{r cats}
 cats <- unique(gtdgroups[, c("tergroup", "International.Extremism")])
 cats[,1] <- abbreviate(as.character(cats[,1]), minlength = 40)
 cats
@@ -703,7 +722,17 @@ cats
 
 ### References
 
-[2] Friendly, Michael. Discrete Data Analysis with R. Chapman and Hall/CRC, 2015.
+[2] Friendly, Michael. 
+  Discrete Data Analysis with R. Chapman and Hall/CRC, 2015.
 
 [3] David Meyer, Achim Zeileis, and Kurt Hornik (2015).
-vcd: Visualizing Categorical Data. R package version 1.4-1.
+  vcd: Visualizing Categorical Data. R package version 1.4-1.
+
+[4] Venables, W. N. & Ripley, B. D. (2002) Modern
+  Applied Statistics with S. Fourth Edition.
+  Springer, New York. ISBN 0-387-95457-0
+
+[5]
+  John Fox and Sanford Weisberg (2011). An {R} Companion to
+  Applied Regression, Second Edition. Thousand Oaks CA: Sage.
+  URL: http://socserv.socsci.mcmaster.ca/jfox/Books/Companion
