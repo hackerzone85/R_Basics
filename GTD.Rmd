@@ -228,32 +228,47 @@ gtdgroups <- within(gtdgroups, {
                    , intextCols[1], intextCols[2])
 })
 
+series_base <- data.frame(nIncidents = rep(0,552), nMonthsSinceJan1970 = 1:552)
+series_base$yrmnth <- as.character(1:552)
+
 nincm <- tapply(gtdgroups$International.Extremism, gtdgroups$yrmnth, function(x) 
 {sum(1 * (x == "No")) })
 
+nincm <- cbind(series_base, nincm = as.vector(nincm[series_base$yrmnth]))
+nincm$nIncidents <- nincm$nIncidents + ifelse(!(is.na(nincm$nincm)), nincm$nincm, 0)
+
+c(mean = mean(nincm$nIncidents), var = var(nincm$nIncidents),
+                ratio = var(nincm$nIncidents) / mean(nincm$nIncidents))
+
 yincm <- tapply(gtdgroups$International.Extremism, gtdgroups$yrmnth, function(x) 
 {sum(1 * (x == "Yes")) })
+
+yincm <- cbind(series_base, yincm = as.vector(yincm[series_base$yrmnth]))
+yincm$nIncidents <- yincm$nIncidents + ifelse(!(is.na(yincm$yincm)), yincm$yincm, 0)
+
+c(mean = mean(yincm$nIncidents), var = var(yincm$nIncidents),
+                ratio = var(yincm$nIncidents) / mean(yincm$nIncidents))
 ```
 
 ```{r nincPoisFit, fig.height=4, fig.width=4, results='hide', fig.show='hide'}
-ninc.pois <- goodfit(table(nincm), type = "poisson")
+ninc.pois <- goodfit(table(nincm$nIncidents), type = "poisson")
 sum.ninc.pois <- summary(ninc.pois)
 unlist(ninc.pois$par)
 plot(ninc.pois, shade = TRUE
      , main = "poisson model"
      , xlab = "Number of incidents in a given month")
-distplot(table(nincm), lambda = 4.28
+distplot(table(nincm$nIncidents), lambda = 4.28
         , xlab = "Number of incidents in a given month")
 ```
 
 ```{r nincNbinomFit, fig.height=4, fig.width=4, results='hide', fig.show='hide'}
-ninc.nbin <- goodfit(table(nincm), type = "nbinomial")
+ninc.nbin <- goodfit(table(nincm$nIncidents), type = "nbinomial")
 sum.ninc.nbin <- summary(ninc.nbin)
 unlist(ninc.nbin$par)
 plot(ninc.nbin, shade = TRUE
     , main = "negative binomial model"
     , xlab = "Number of incidents in a given month")
-distplot(table(nincm), type = "nbinomial"
+distplot(table(nincm$nIncidents), type = "nbinomial"
         , xlab = "Number of incidents in a given month")
 ```
 
@@ -263,7 +278,7 @@ nincs <- data.frame(nIncidents = nincm, nMonthsSinceJan1970 = as.numeric(rowname
 yrmnth.grid <- data.frame(nMonthsSinceJan1970 = 1:600)
 
 gtn.glm <- glm(nIncidents~nMonthsSinceJan1970
-                , data = nincs
+                , data = nincm
                 , family = negative.binomial(
                   theta = unlist(ninc.nbin$par)[1]
                   , link=log
@@ -300,7 +315,7 @@ gtn.ns5.preds <- within(gtn.ns5.preds, {
 })
 
 plot(nIncidents~nMonthsSinceJan1970
-     , data = nincs, xlim = c(0,600)
+     , data = nincm, xlim = c(0,600)
      , xaxt = "n"
      , col = intextCols[1]
      , pch = 20, cex =0.5
@@ -337,34 +352,32 @@ This plot shows the final model choice, a natural spline with (equivalent) 5 df 
 I've also plotted the baseline fit from a simple negative binomial glm. It obviously doesn't pick up the non-linear pattern, notably the increase in incident frequency from the 1970's to 1980's, but it's good for emphasising what we know to be true from history; In Western Europe, terrorism from local sources (Nationalism, Republicanism, Revolutionary Communism) has all but disappeared.
 
 ```{r yincPoisFit, fig.height=4, fig.width=4, results='hide', fig.show='hide'}
-yinc.pois <- goodfit(table(yincm), type = "poisson")
+yinc.pois <- goodfit(table(yincm$nIncidents), type = "poisson")
 sum.yinc.pois <- summary(yinc.pois)
 unlist(yinc.pois$par)
 plot(yinc.pois, shade = TRUE
      , main = "poisson model"
      , xlab = "Number of incidents in a given month")
-distplot(table(yincm), lambda = 0.445
+distplot(table(yincm$nIncidents), lambda = 0.445
         , xlab = "Number of incidents in a given month")
 ```
 
 ```{r yincNbinomFit, fig.height=4, fig.width=4, results='hide', fig.show='hide'}
-yinc.nbin <- goodfit(table(yincm), type = "nbinomial")
+yinc.nbin <- goodfit(table(yincm$nIncidents), type = "nbinomial")
 sum.yinc.nbin <- summary(yinc.nbin)
 unlist(yinc.nbin$par)
 plot(yinc.nbin, shade = TRUE
     , main = "negative binomial model"
     , xlab = "Incidents in a given month")
-distplot(table(yincm), type = "nbinomial"
+distplot(table(yincm$nIncidents), type = "nbinomial"
         , xlab = "Number of incidents in a given month")
 ```
 
 I follow the same fitting process with the international extremists and came up with the same final model, shown here: 
 
 ```{r, yincNbinomGLM, results='hide'}
-yincs <- data.frame(nIncidents = yincm, nMonthsSinceJan1970 = as.numeric(rownames(yincm)))
-
 gty.glm <- glm(nIncidents~nMonthsSinceJan1970
-                , data = yincs
+                , data = yincm
                 , family = negative.binomial(
                   theta = unlist(yinc.nbin$par)[1]
                   , link=log
@@ -372,7 +385,7 @@ gty.glm <- glm(nIncidents~nMonthsSinceJan1970
                 )
 
 gty.ns5 <- glm(nIncidents~ns(nMonthsSinceJan1970,5)
-                , data = yincs
+                , data = yincm
                 , family = negative.binomial(
                   theta = unlist(yinc.nbin$par)[1]
                   , link=log
@@ -400,7 +413,7 @@ gty.ns5.preds <- within(gty.ns5.preds, {
   ci.lwr <- fit - 1.96 * se.fit
 })
 
-plot(nIncidents~nMonthsSinceJan1970, data = yincs[yincs$nIncidents > 0,]
+plot(nIncidents~nMonthsSinceJan1970, data = yincm
      , xlim = c(0,600)
      , ylim = c(0, 3)
      , xaxt = "n"

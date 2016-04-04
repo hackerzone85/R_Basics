@@ -3,7 +3,7 @@ library(vcdExtra)
 library(effects)
 library(ggplot2)
 library(gpairs)
-library(contreg)
+library(countreg)
 library(GGally)
 library(MASS)
 library(sandwich)
@@ -439,32 +439,15 @@ persp(nmes.gamnb, school ~ chronic, zlab = "log Office visits",
       contour = list(col = "colors", lwd = 2, z = "top"),
       at = list(hospital = 0.3, health = "average"), theta = -60)
 
-## ----nmes3-rsm-bis, h=6, w=6, out.width='.5\\textwidth', cap='Fitted response surfaces for the relationships among chronic conditions,  number of hospital stays, and years of education to office visits in the generalized additive model, nmes.gamnb.', eval=FALSE----
-## library(rsm)
-## library(colorspace)
-## persp(nmes.gamnb, hospital ~ chronic, zlab = "log Office visits",
-##   col = rainbow_hcl(30), contour = list(col = "colors", lwd = 2),
-##   at = list(school = 10, health = "average"), theta = -60)
-## 
-## persp(nmes.gamnb, school ~ chronic, zlab = "log Office visits",
-##   col = rainbow_hcl(30),
-##   contour = list(col = "colors", lwd = 2, z = "top"),
-##   at = list(hospital = 0.3, health = "average"), theta = -60)
-
-
-## ----phdpubs5-plot, h=8, w=8, echo=2, out.width='.7\\textwidth', cap='Default diagnostic plots for the negative-binomial model fit to the PhdPubs data.'----
 op <- par(mfrow=c(2,2), mar=c(4,4,2,1)+.1, cex.lab=1.2)
 plot(phd.nbin)
 par(op)
-
-## ----phdpubs5-resplot1, h=6, w=6, out.width='.5\\textwidth', cap='Plots of residuals against the linear predictor using residualPlot(). The right panel shows that the diagonal bands correspond to different values of the discrete response.'----
 library(car)
 residualPlot(phd.nbin, type = "rstandard", col.smooth = "red", id.n = 3)
 residualPlot(phd.nbin, type = "rstandard",
              groups = PhdPubs$articles, key = FALSE, linear = FALSE, 
              smoother = NULL)
 
-## ----phdpubs5-resplot2, h=6, w=6, out.width='.5\\textwidth', cap='Plots of residuals against two predictors in the phd.nbin model. Such plots should show no evidence of a systematic trend for a good-fitting model.'----
 residualPlot(phd.nbin, "mentor", type = "rstudent",
              quadratic = TRUE, col.smooth = "red", col.quad = "blue", 
              id.n = 3)
@@ -472,54 +455,40 @@ residualPlot(phd.nbin, "phdprestige", type = "rstudent",
              quadratic = TRUE, col.smooth = "red", col.quad = "blue", 
              id.n = 3)
 
-## ----phdpubs5-influenceplot, h=6, w=8, out.width='.7\\textwidth', cap="Influence plot showing leverage, studentized residuals, and Cook's distances for the negative-binomial model fit to the PhdPubs data. Conventional cutoffs for studentized residuals are shown by dashed horizontal lines at $\\pm 2$; vertical lines show 2 and 3 times the average hat-value."----
 influencePlot(phd.nbin)
-
-## ----phdpubs-outlierTest-------------------------------------------------
 outlierTest(phd.nbin)
 
-## ----phdpubs6-qqplot, h=6, w=6, out.width='.5\\textwidth', cap='Normal QQ plot of the studentized residuals from the NB model for the PhdPubs data. The normal-theory reference line and confidence envelope are misleading here.'----
 qqPlot(rstudent(phd.nbin), id.n = 3,
        xlab = "Normal quantiles", ylab = "Studentized residuals")
 
-## ----phdpubs6-obs, eval=FALSE--------------------------------------------
-## observed <- sort(abs(rstudent(phd.nbin)))
-## n <- length(observed)
-## expected <- qnorm((1:n + n - 1/8) / (2*n + 1/2))
+observed <- sort(abs(rstudent(phd.nbin)))
+n <- length(observed)
+expected <- qnorm((1:n + n - 1/8) / (2*n + 1/2))
+S <- 100
+sims <- simulate(phd.nbin, nsim = S)
+simdat <- cbind(PhdPubs, sims)
+# calculate residuals for one simulated data set
+resids <- function(y)
+  rstudent(glm.nb(y ~ female + married + kid5 + phdprestige + mentor,
+                  data=simdat, start=coef(phd.nbin)))
+# do them all ...
+simres <- matrix(0, nrow(simdat), S)
+for(i in 1:S) {
+	simres[,i] <- sort(abs(resids(simdat[,paste("sim", i, sep="_")])))
+}
+envelope <- 0.95
+mean <- apply(simres, 1, mean)
+lower <- apply(simres, 1, quantile, prob = (1 - envelope) / 2)
+upper <- apply(simres, 1, quantile, prob = (1 + envelope) / 2)
 
-## ----phdpubs6-sims, eval=FALSE-------------------------------------------
-## S <- 100
-## sims <- simulate(phd.nbin, nsim = S)
-## simdat <- cbind(PhdPubs, sims)
+plot(expected, observed,
+     xlab = "Expected value of half-normal order statistic",
+     ylab = "Absolute value of studentized residual")
+lines(expected, mean, lty = 1, lwd = 2, col = "blue")
+lines(expected, lower, lty = 2, lwd = 2, col = "red")
+lines(expected, upper, lty = 2, lwd = 2, col = "red")
+identify(expected, observed, labels = names(observed), n = 3)
 
-## ----phdpubs6-simres, eval=FALSE-----------------------------------------
-## # calculate residuals for one simulated data set
-## resids <- function(y)
-##   rstudent(glm.nb(y ~ female + married + kid5 + phdprestige + mentor,
-##                   data=simdat, start=coef(phd.nbin)))
-## # do them all ...
-## simres <- matrix(0, nrow(simdat), S)
-## for(i in 1:S) {
-## 	simres[,i] <- sort(abs(resids(dat[,paste("sim", i, sep="_")])))
-## }
-
-## ----phdpubs6-env, eval=FALSE--------------------------------------------
-## envelope <- 0.95
-## mean <- apply(simres, 1, mean)
-## lower <- apply(simres, 1, quantile, prob = (1 - envelope) / 2)
-## upper <- apply(simres, 1, quantile, prob = (1 + envelope) / 2)
-
-## ----phdpubs6-hnp, eval=FALSE--------------------------------------------
-## plot(expected, observed,
-##      xlab = "Expected value of half-normal order statistic",
-##      ylab = "Absolute value of studentized residual")
-## lines(expected, mean, lty = 1, lwd = 2, col = "blue")
-## lines(expected, lower, lty = 2, lwd = 2, col = "red")
-## lines(expected, upper, lty = 2, lwd = 2, col = "red")
-## identify(expected, observed, labels = names(observed), n = 3)
-
-## ----phdpubs6-res-plots, h=6, w=6, out.width='.5\\textwidth', cap='Further plots of studentized residuals. Left: density plot; right: residuals against log(articles+1).'----
-# examine distribution of residuals
 res <- rstudent(phd.nbin)
 plot(density(res), lwd = 2, col = "blue",
      main = "Density of studentized residuals")
@@ -529,13 +498,7 @@ rug(res)
 plot(jitter(log(PhdPubs$articles + 1), factor = 1.5), res,
      xlab = "log (articles + 1)", ylab = "Studentized residual")
 
-## ----multiv, child='ch11/multiv.Rnw'-------------------------------------
 
-
-
-## ----nmes-multiv, child='ch11/nmes-multiv.Rnw'---------------------------
-
-## ----nmes4-data----------------------------------------------------------
 data("NMES1988", package = "AER")
 nmes2 <- NMES1988[, c(1 : 4, 6 : 8, 13, 15, 18)]
 names(nmes2)[1 : 4]     # responses
