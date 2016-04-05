@@ -90,8 +90,8 @@ gtdgroups$tergroup == "Unknown"
 gtdgroups <- rbind(gtdgroups, list(2015, 11, "Paris Attacks", 130))
 gtdgroups$tergroup <- make.names(gtdgroups$tergroup)
 
-# load("C:/Dev/Study/R/R_Basics/tervars.RData")
-load("D:\\github\\R_Basics\\tervars.RData")
+load("C:\\Dev\\Study\\R\\R_Basics\\tervars.RData")
+#load("D:\\github\\R_Basics\\tervars.RData")
 tervars <- tervars %>% mutate(tergroup = make.names(tergroup)) 
 gtdgroups <- left_join(gtdgroups, tervars) %>%
 mutate(tergroup = factor(tergroup)
@@ -154,11 +154,32 @@ gtf.nlm <- glm(fatalities~bs(nMonthsSinceJan1970
 anova(gtf.nlm, test = "Chisq")
 ```
 
+```{r nfatNbinomGLMnozero}
+gtf.glm0 <- glm(fatalities~nMonthsSinceJan1970, data = nfatm[nfatm$fatalities > 0,]
+                , family = negative.binomial(theta = 1.27, link=log))
+
+gtf.nlm0 <- glm(fatalities~bs(nMonthsSinceJan1970
+                             , knots = c(60, 150, 240, 420))
+               , data = nfatm[nfatm$fatalities > 0,]
+               , family = negative.binomial(theta = 1.27, link=log))
+anova(gtf.nlm, test = "Chisq")
+```
+
 ```{r yfatNbinomGLM}
-gtf.glm2 <- glm(fatalities~nMonthsSinceJan1970, data = yfatm
+gtf.glm2 <- glm(fatalities~nMonthsSinceJan1970, data = yfatm[yfatm$fatalities > 0,]
                 , family = negative.binomial(theta = 0.07, link=log))
 
 gtf.nlm2 <- glm(fatalities~ns(nMonthsSinceJan1970,3)
+                , data = yfatm[yfatm$fatalities > 0,]
+                , family = negative.binomial(theta = 0.07, link=log))
+anova(gtf.nlm, test = "Chisq")
+```
+
+```{r yfatNbinomGLMnozero}
+gtf.glm20 <- glm(fatalities~nMonthsSinceJan1970, data = yfatm
+                , family = negative.binomial(theta = 0.07, link=log))
+
+gtf.nlm20 <- glm(fatalities~ns(nMonthsSinceJan1970,3)
                 , data = yfatm
                 , family = negative.binomial(theta = 0.07, link=log))
 anova(gtf.nlm, test = "Chisq")
