@@ -92,7 +92,6 @@ with(CrabSatellites, lines(lowess(weight, satellites)
                            , col = "red", lwd = 2))
 par(op)
 
-## ----crabs1-boxplots, h=4, w=5, echo=2:3, out.width='.49\\textwidth', cap='Boxplots of number of satellites vs.\ width and weight.'----
 op <- par(mar=c(4,4,1,1)+.1)
 plot(satellites ~ cutfac(width), data = CrabSatellites
      , ylab = "Number of satellites"

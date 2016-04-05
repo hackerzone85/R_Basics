@@ -90,8 +90,8 @@ gtdgroups$tergroup == "Unknown"
 gtdgroups <- rbind(gtdgroups, list(2015, 11, "Paris Attacks", 130))
 gtdgroups$tergroup <- make.names(gtdgroups$tergroup)
 
-load("C:\\Dev\\Study\\R\\R_Basics\\tervars.RData")
-#load("D:\\github\\R_Basics\\tervars.RData")
+#load("C:\\Dev\\Study\\R\\R_Basics\\tervars.RData")
+load("D:\\github\\R_Basics\\tervars.RData")
 tervars <- tervars %>% mutate(tergroup = make.names(tergroup)) 
 gtdgroups <- left_join(gtdgroups, tervars) %>%
 mutate(tergroup = factor(tergroup)
@@ -166,23 +166,105 @@ anova(gtf.nlm, test = "Chisq")
 ```
 
 ```{r yfatNbinomGLM}
-gtf.glm2 <- glm(fatalities~nMonthsSinceJan1970, data = yfatm[yfatm$fatalities > 0,]
+gtf.glm2 <- glm(fatalities~nMonthsSinceJan1970, data = yfatm
                 , family = negative.binomial(theta = 0.07, link=log))
 
 gtf.nlm2 <- glm(fatalities~ns(nMonthsSinceJan1970,3)
-                , data = yfatm[yfatm$fatalities > 0,]
+                , data = yfatm
                 , family = negative.binomial(theta = 0.07, link=log))
 anova(gtf.nlm, test = "Chisq")
 ```
 
 ```{r yfatNbinomGLMnozero}
-gtf.glm20 <- glm(fatalities~nMonthsSinceJan1970, data = yfatm
+gtf.glm20 <- glm(fatalities~nMonthsSinceJan1970, data = yfatm[yfatm$fatalities > 0,]
                 , family = negative.binomial(theta = 0.07, link=log))
 
 gtf.nlm20 <- glm(fatalities~ns(nMonthsSinceJan1970,3)
-                , data = yfatm
+                , data = yfatm[yfatm$fatalities > 0,]
                 , family = negative.binomial(theta = 0.07, link=log))
 anova(gtf.nlm, test = "Chisq")
+```
+
+```{r nincPoisFit}
+ninc.pois <- goodfit(table(nincm$nIncidents), type = "poisson")
+sum.ninc.pois <- summary(ninc.pois)
+unlist(ninc.pois$par)
+plot(ninc.pois, shade = TRUE
+     , main = "poisson model"
+     , xlab = "Number of incidents\nin a given month")
+distplot(table(nincm$nIncidents), lambda = unlist(ninc.pois$par)[1]
+        , xlab = "Number of incidents\nin a given month")
+```
+
+```{r nincNbinomFit}
+ninc.nbin <- goodfit(table(nincm$nIncidents), type = "nbinomial")
+sum.ninc.nbin <- summary(ninc.nbin)
+unlist(ninc.nbin$par)
+plot(ninc.nbin, shade = TRUE
+    , main = "negative binomial model"
+    , xlab = "Number of incidents\nin a given month")
+distplot(table(nincm$nIncidents), type = "nbinomial", size = unlist(ninc.nbin$par)[1]
+        , xlab = "Number of incidents\nin a given month")
+```
+
+```{r yincPoisFit}
+yinc.pois <- goodfit(table(yincm$nIncidents), type = "poisson")
+sum.yinc.pois <- summary(yinc.pois)
+unlist(yinc.pois$par)
+plot(yinc.pois, shade = TRUE
+     , main = "poisson model"
+     , xlab = "Number of incidents\nin a given month")
+distplot(table(yincm$nIncidents), lambda = unlist(yinc.pois$par)[1]
+        , xlab = "Number of incidents\nin a given month")
+```
+
+```{r yincNbinomFit}
+yinc.nbin <- goodfit(table(yincm$nIncidents), type = "nbinomial")
+sum.yinc.nbin <- summary(yinc.nbin)
+unlist(yinc.nbin$par)
+plot(yinc.nbin, shade = TRUE
+    , main = "negative binomial model"
+    , xlab = "Number of incidents\nin a given month")
+distplot(table(yincm$nIncidents), type = "nbinomial", size = unlist(yinc.nbin$par)[1]
+        , xlab = "Number of incidents\nin a given month")
+```
+
+```{r nincNbinomGLM}
+gtn.glm <- glm(nIncidents~nMonthsSinceJan1970
+                , data = nincm
+                , family = negative.binomial(
+                  theta = unlist(ninc.nbin$par)[1]
+                  , link=log
+                  )
+                )
+
+gtn.ns5 <- glm(nIncidents~ns(nMonthsSinceJan1970,5)
+                , data = nincm
+                , family = negative.binomial(
+                  theta = unlist(ninc.nbin$par)[1]
+                  , link=log
+                  )
+                )
+anova(gtn.ns5, test = "Chisq")
+```
+
+```{r yincNbinomGLM}
+gty.glm <- glm(nIncidents~nMonthsSinceJan1970
+                , data = yincm
+                , family = negative.binomial(
+                  theta = unlist(yinc.nbin$par)[1]
+                  , link=log
+                  )
+                )
+
+gty.ns5 <- glm(nIncidents~ns(nMonthsSinceJan1970,5)
+                , data = yincm
+                , family = negative.binomial(
+                  theta = unlist(yinc.nbin$par)[1]
+                  , link=log
+                  )
+                )
+anova(gty.ns5, test = "Chisq")
 ```
 
 ## Introduction
@@ -475,9 +557,112 @@ text(c(1,16,5,19), log(c(55, 60, 88, 270))
          , "Pan Am 103"))
 ```
 
-Here we see a mostly flat trend with huge confidence intervals giving practically no useful information. The natural spline fit is dragged to the floor of the plot by the prevalence of zeros. One can see it lifts where it picks up the activity in the 1970's to 90's and again at the right extremity. Of course, Paris being the last point in the series has very high leverage and lifts the line rather dramatically. This is normal behaviour for this type of line fit, and is no indication of a dramatic escalation of risk.
+Here we see a mostly flat trend in the glm with huge confidence intervals giving practically no useful information. The natural spline fit is dragged to the floor of the plot by the prevalence of zeros. One can see it lifts where it picks up the activity in the 1970's to 90's and again at the right extremity. Of course, Paris being the last point in the series has very high leverage and lifts the line rather dramatically. This is normal behaviour for this type of line fit, and is no indication of a dramatic escalation of risk.
 
 The four catastrophic flight bombings easily rival the death tolls of more recent attacks. However, their influnce on the local average is mediated by a cloud of points with lower y values. Perhaps the attacks in 2004, 2005 and 2015 seem so devastating precisely because there is no longer a continuous background noise from smaller scaled incidents.
+
+In case it's not clear what's happening, here's the same plot ignoring all the months when there were zero incidents. You see the local average shoot up where there are just a very small number of rare events with a high death toll and stay low to the floor where there were a lot of incidents of mostly a single fatality.
+
+```{r yfatNbinomGLMplotNoZero, fig.show='show', fig.height=4, fig.width=4}
+gtf.glm.preds <- predict(gtf.glm20, newdata = yrmnth.grid, se = TRUE)
+
+gtf.glm.preds <- within(gtf.glm.preds, {
+  ci.upr <- fit + 1.96 * se.fit
+  ci.lwr <- fit - 1.96 * se.fit
+})
+gtf.glm.preds <- lapply(gtf.glm.preds, pos.part)
+
+gtf.nlm.preds <- predict(gtf.nlm20, newdata = yrmnth.grid
+                         , type = "terms"
+                         , se = TRUE)
+
+gtf.nlm.preds <- within(gtf.nlm.preds, {
+  ci.upr <- fit + 1.96 * se.fit
+  ci.lwr <- fit - 1.96 * se.fit
+})
+gtf.nlm.preds <- lapply(gtf.nlm.preds, pos.part)
+
+plot(log(fatalities)~nMonthsSinceJan1970
+     , data = yfatm
+     , xaxt = "n"
+     , col = intextCols[2]
+     , pch = 20, cex =0.5
+     , xlab = "Year"
+     , ylab = "log(Fatalities) in a given month"
+     , main = "Fatalities from terrorist actions\n (international in Western Europe)"
+     , sub = "Only months with > 0 incidents counted")
+
+axis(side = 1, at = seq(0, 600, 60), labels = seq(0, 600, 60)/12 +1970)
+
+with(gtf.glm.preds
+     , polygon(c(1:552,552:1)
+               , c(ci.upr, rev(ci.lwr))
+               , col=rgb(0,0.8,0.5,0.1), border=NA))
+lines(1:552, gtf.glm.preds$fit, col = "aquamarine2", lwd = 3)
+
+with(gtf.nlm.preds
+     , polygon(c(1:552,552:1)
+               , c(ci.upr, rev(ci.lwr))
+               , col=rgb(0.2,0.3,1,0.1), border=NA))
+lines(1:552, gtf.nlm.preds$fit, col = intextCols[2], lwd = 3)
+
+legend("bottomright", legend = c("log(fatalities)"
+                              , "nspline (3 df)"
+                              , "nbinom glm")
+       , inset = c(0, 0.1)
+       , cex = 0.6
+       , col = c(intextCols[2], intextCols[2], "aquamarine3")
+       , pch = c(19, NA, NA)
+       , lty = c(NA, 1, 1)
+       , lwd = c(NA, 2, 2))
+
+points(c(411,427,551)
+       , log(c(191, 56, 130))
+       , col = "red", cex = 1.5)
+text(c(411,427,551)
+     , log(c(191, 56, 130))
+     , pos = c(2,4,2)
+     , cex = 0.6
+     , c("Madrid, 2004"
+         , "London 2005"
+         , "Paris 2015"))
+
+points(c(2, 191,57,228)
+       , log(c(55, 60, 88, 270))
+       , col = "red", cex = 1.5)
+text(c(2, 191,57,228), log(c(55, 60, 88, 270))
+     , pos = c(4, 4,4,2)
+     , cex = 0.6
+     , c("\nSwissair 330"
+         , "EgyptAir 648"
+         , "TWA 841"
+         , "Pan Am 103"))
+
+plot(log(fatalities)~year, yfatm, col = intextCols[2]
+     , main = "Distribution of fatalities\n(international in Western Europe)")
+points(c(35,36,46)
+       , log(c(191, 56, 130))
+       , col = "red", cex = 1.5)
+text(c(35,36,46)
+     , log(c(191, 56, 130))
+     , pos = c(2,4,2)
+     , cex = 0.6
+     , c("Madrid, 2004"
+         , "London 2005"
+         , "Paris 2015"))
+points(c(1,16,5,19)
+       , log(c(55, 60, 88, 270))
+       , col = "red", cex = 1.5)
+text(c(1,16,5,19), log(c(55, 60, 88, 270))
+     , pos = c(4, 4,4,2)
+     , cex = 0.6
+     , c("\nSwissair 330"
+         , "EgyptAir 648"
+         , "TWA 841"
+         , "Pan Am 103"))
+```
+
+The huge confidence intervals in the peak regions show that the estimates are incredibly unreliable. There's not enough data and this highlights how rare the events have become. In the 1970's-90's the interval is compressed because the amount of data makes the estimates robust.
 
 This is also a reason to revisit an earlier measure, the average number of fatalities per incident and instead consider the fatalities per month which acts as a weighting against very rare events:
 
@@ -499,13 +684,15 @@ text(2.4, 4, "All Count\n1970-2015", pos = 2)
 text(2.6, 4, "Since GFA\n2001-2015", pos = 4)
 ```
 
-Accounting for all the months when there were no incidents, it's clear that the localised terrorists were the more deadly group in the period 1970-2000, by the sheer number of incidents even though international terrorists carried out a number of airplane bombing atrocities, these were no more than a handful.
+Accounting for all the months when there were no incidents, it's clear that the localised terrorists were the more deadly group in the period 1970-2000, by the sheer number of incidents even though international terrorists carried out a number of airplane bombing atrocities, these were no more than a handful in two decades.
 
 The threat from international terrorists, if measured in a rate of fatalities over a given time period, has remained constant and low.
 
 ## Appendices
 
-This is a purely theoretical exercise not intended to be taken as a prediction or forecast. There are many volatile factors that this picture could change dramatically and upredictably at any time. I'm looking at trends over time and not taking any influential factors in to consideration.
+This was purely a theoretical exercise not intended to be taken as a prediction or forecast. There are many volatile factors that this picture could change dramatically and upredictably at any time. I'm looking at trends over time and not taking any influential factors in to consideration.
+
+The analysis is done. If anyone is interested in the workings, read on.
 
 ### Original Chart
 
@@ -523,26 +710,28 @@ There is an entry for the Red Brigades 1974 hostage taking in Genoa with 1 kille
 
 ### Finding the best fit
 
-This is not a traditional regression task as the data are not iid. I'm really looking at a time series where it is highly likely that near neighbours in the data will be correlated. Whatever are the factors that lead to terrorism one month are probably just as true in the previous and next months, but may very more from year to year, and most as the decades go by.
+This is not a traditional regression task as the data are not iid. I'm really looking at a time series where it is highly likely (as certain as can be) that near neighbours in the data will be correlated. Whatever are the factors that lead to terrorism one month are probably just as true in the previous and next months, but may very more from year to year, and most as the decades go by.
 
-Nevertheless, the idea is find a robust smoothing line that will reveal trends in the count data where there is dramatic zero inflation.
+For the scatter plots, the challenge was to find a robust smoothing line that reveals trends in the count data where there is serious non-linearity and dramatic zero inflation.
 
-I start with the assumption that number of fatalities in a given month follow standard models for count data, but initially struggled with it as can be seen from the first attempt to perform a poisson goodness of fit:
+I started with the assumption that number of fatalities in a given month follow standard models for count data, but initially struggled with it as can be seen from the first attempt to perform a poisson goodness of fit:
 
-```{r nfatPoisFitBad, fig.height=4, fig.width=4}
+```{r nfatPoisFitBad, fig.show='show', fig.height=4, fig.width=4}
 nfatc.pois <- goodfit(table(nfatm$fatalities), type = "poisson")
 sum.nfatc.pois <- summary(nfatc.pois)
 unlist(nfatc.pois$par)
 plot(nfatc.pois, shade = TRUE
      , main = "poisson model"
-     , xlab = "Number of incidents in a given month")
-distplot(table(log(nfatm$fatalities+1)), lambda = 9.45833
-        , xlab = "Number of incidents in a given month")
+     , xlab = "Number of incidents\nin a given month")
+distplot(table(log(nfatm$fatalities+1)), lambda = unlist(nfatc.pois$par)[1]
+        , xlab = "Number of incidents\nin a given month")
 ```
 
-What's happening here? The data of course are very skewed and my obvious next step is to operate on the log transformed data (+1 for the zeros). It dawns on me that the incidents themselves are the count data, while the number of deaths for each incident is really some level of intensity, that might even be considered to be quantitative, and certainly leaves me thinking that I'm actually trying to model a multivariate response of frequency and intensity. I need the log transform to tame the high skew and dispersion.
+What's happening here? The data are very skewed and my obvious next step is to operate on the log transformed data (+1 for the zeros). When thinking about why that is, it makes more sense to think of the incidents themselves are the count data, while the number of deaths for each incident is really some level of intensity. This might even be considered to be quantitative, and certainly leaves me thinking that I'm actually trying to model a multivariate response of frequency and intensity. That's going to take quite a bit of brain power and will require a lot more explanatory variables to solve it. I put this problem aside for another day. 
 
-```{r nfatPoisFit, fig.height=4, fig.width=4}
+Obviously I can start with the log transform to tame the high skew and dispersion.
+
+```{r nfatPoisFit, fig.show='show', fig.height=4, fig.width=4}
 nfatc.pois <- goodfit(table(log(nfatm$fatalities+1)), type = "poisson")
 sum.nfatc.pois <- summary(nfatc.pois)
 unlist(nfatc.pois$par)
@@ -553,124 +742,40 @@ distplot(table(log(nfatm$fatalities+1)), lambda = 0.6
         , xlab = "Number of incidents in a given month")
 ```
 
-```{r nfatNbinFit}
+Here in the poisson model I can see evidence of zero inflation. This means there are many more times when zero deaths are counted in a given month than the standard poisson model allows for.
+
+```{r nfatNbinFit, fig.show='show', fig.height=4, fig.width=4}
 nfatc.nbin <- goodfit(table(log(nfatm$fatalities+1)), type = "nbinom")
 sum.nfatc.nbin <- summary(nfatc.nbin)
 unlist(nfatc.nbin$par)
 plot(nfatc.nbin, shade = TRUE
-     , main = "poisson model"
+     , main = "negative binomial model"
      , xlab = "Number of incidents in a given month")
 distplot(table(log(nfatm$fatalities+1)), type = "nbinomial", size = 1.27
         , xlab = "Number of incidents in a given month")
 ```
 
-These are a lot better but there's evidence of zero inflation, so I'll need to use a model suitable for this situation.
+These are a lot better with much less evidence of zero inflation. However, there's still a real lack of fit above $e^2$. I want to find a model suitable for this situation.
 
+A similar look at the number of incidents data:
 
-A poisson glm is a natural choice for number of incidents as a baseline. I also try a negative binomial has similar applications and allows for over dispersion ($\sigma > \mu$)[2]. 
-
-Testing goodness of fit using tools from the vcd Package[3] and beginning with the localised, non-International terrorists
-
-```{r nincPoisFit}
-ninc.pois <- goodfit(table(nincm$nIncidents), type = "poisson")
-sum.ninc.pois <- summary(ninc.pois)
-unlist(ninc.pois$par)
-plot(ninc.pois, shade = TRUE
-     , main = "poisson model"
-     , xlab = "Number of incidents in a given month")
-distplot(table(nincm$nIncidents), lambda = 4.28
-        , xlab = "Number of incidents in a given month")
+```{r nincPoisFit, fig.show='show', fig.height=4, fig.width=4}
 ```
 
-
-
-```{r nincNbinomFit}
-ninc.nbin <- goodfit(table(nincm$nIncidents), type = "nbinomial")
-sum.ninc.nbin <- summary(ninc.nbin)
-unlist(ninc.nbin$par)
-plot(ninc.nbin, shade = TRUE
-    , main = "negative binomial model"
-    , xlab = "Number of incidents in a given month")
-distplot(table(nincm$nIncidents), type = "nbinomial"
-        , xlab = "Number of incidents in a given month")
+```{r nincNbinomFit, fig.show='show', fig.height=4, fig.width=4}
 ```
 
-```{r nincNbinomGLM}
-gtn.glm <- glm(nIncidents~nMonthsSinceJan1970
-                , data = nincm
-                , family = negative.binomial(
-                  theta = unlist(ninc.nbin$par)[1]
-                  , link=log
-                  )
-                )
-
-gtn.ns5 <- glm(nIncidents~ns(nMonthsSinceJan1970,5)
-                , data = nincm
-                , family = negative.binomial(
-                  theta = unlist(ninc.nbin$par)[1]
-                  , link=log
-                  )
-                )
-anova(gtn.ns5, test = "Chisq")
+```{r yincPoisFit, fig.show='show', fig.height=4, fig.width=4}
 ```
 
-```{r yincPoisFit}
-yinc.pois <- goodfit(table(yincm$nIncidents), type = "poisson")
-sum.yinc.pois <- summary(yinc.pois)
-unlist(yinc.pois$par)
-plot(yinc.pois, shade = TRUE
-     , main = "poisson model"
-     , xlab = "Number of incidents in a given month")
-distplot(table(yincm$nIncidents), lambda = 0.445
-        , xlab = "Number of incidents in a given month")
+```{r yincNbinomFit, fig.show='show', fig.height=4, fig.width=4}
 ```
 
-```{r yincNbinomFit}
-yinc.nbin <- goodfit(table(yincm$nIncidents), type = "nbinomial")
-sum.yinc.nbin <- summary(yinc.nbin)
-unlist(yinc.nbin$par)
-plot(yinc.nbin, shade = TRUE
-    , main = "negative binomial model"
-    , xlab = "Incidents in a given month")
-distplot(table(yincm$nIncidents), type = "nbinomial"
-        , xlab = "Number of incidents in a given month")
-```
-
-```{r, yincNbinomGLM}
-gty.glm <- glm(nIncidents~nMonthsSinceJan1970
-                , data = yincm
-                , family = negative.binomial(
-                  theta = unlist(yinc.nbin$par)[1]
-                  , link=log
-                  )
-                )
-
-gty.ns5 <- glm(nIncidents~ns(nMonthsSinceJan1970,5)
-                , data = yincm
-                , family = negative.binomial(
-                  theta = unlist(yinc.nbin$par)[1]
-                  , link=log
-                  )
-                )
-anova(gty.ns5, test = "Chisq")
-```
+Overall the negative binomial is the better fit for modeling the frequency of terrorist incidents by non-International extremists but needs to be corrected for a large zero inflation. Conversely it's a very good fit for the International group.
 
 
-
-```{r nincPoisFit, fig.height=4, fig.width=4}
-```
-
-This is a not a disasterous fit, but it could be better.
-
-```{r nincNbinomFit, fig.height=4, fig.width=4}
-```
-
-Overall the negative binomial is a moderately better fit for modeling the frequency of terrorist incidents by non-International extremists.
 
 A number of model fits were attempted. Here I show only the final choice, a natural spline function over the month, indexed at zero for January 1970. The transformed value is regressed using glm and family.negbin[4] with (equivalent) 5 df. This produced the lowest deviance, but is by no means a particularly good fit. 
-
-```{r nincNbinomGLM}
-```
 
 ```{r nincNbinomGLMplot, eval = FALSE}
 gtn.glm.preds <- predict(gtn.glm, newdata = yrmnth.grid
@@ -786,39 +891,9 @@ legend("topright", legend = c("Incident count"
 
 Here we see, in contrast to the dominant narrative, a flat trend at 0 incidents in a given month since 1995. There is a hint of an uplift after mid 2000's though this is accompanied by large confidence intervals, given the sparsity of data (i.e. real incidents) in this region of the chart. The baseline glm only captures a decreasing trend.
 
-I go through the same fitting process with the international extremists:
-
-```{r yincPoisFit, fig.height=4, fig.width=4}
-```
-
-This is a much more satisfactory fit, on fewer data points.
-
-```{r yincNbinomFit, fig.height=4, fig.width=4}
-```
-
-The Negative Binomial distribution is the better for modeling in this case also.
-
 Again, a few models were tried. Here I only show the final selection (again a natural spline with 5 df to transform the month index, then fit as a glm, family.negbin).
 
-```{r yincNbinomGLM}
-```
-
 Moving on to consider the number of fatalities, here the goodness of fit tests break down (not shown). I proceeded with a little trial and error to find a reasonable model and settled again on the negative binomial with a natural spline of 3 df. A big problem for fitting a continuous distribution is the very wide range of possible values and the high number of sampling zeros in the observed distribution. One avenue I did not follow is coarser binning over e.g. 5 or 10 years.
-
-```{r fatalitiesData}
-```
-
-Here is the final model fitting for the number of fatalities in a given month.
-
-Not international:
-
-```{r nfatNbinomGLM}
-```
-
-International:
-
-```{r yfatNbinomGLM}
-```
 
 ### Points of Influence in the model fits:
 

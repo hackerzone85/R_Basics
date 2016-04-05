@@ -9,7 +9,17 @@ knitr::opts_chunk$set(warning = FALSE
 require(vcd)
 require(vcdExtra)
 require(MASS)
+require(car)
 require(lmtest)
+require(ggplot2)
+require(GGally)
+require(AER)
+require(lattice)
+require(effects)
+require(splines)
+theme_set(theme_bw())  # set default ggplot theme
+
+source("https://raw.githubusercontent.com/julianhatwell/R_Themes/master/simpleTheme.R")
 ```
 
 ---
@@ -49,6 +59,13 @@ lines(x = ci, y = c(-0.1, -0.1), col = "red", lwd = 3, xpd = TRUE)
 plot(jitter(Matings)~Age, data = eleph
      , ylab = "log(Matings)")
 lines(lowess(eleph$Age, eleph$Matings), col = "blue", lwd = 3)
+
+matings.gof <- goodfit(matings.tab, type = "poisson")
+plot(matings.gof
+    , main = "Poisson model fit on matings")
+matings.gof <- goodfit(matings.tab, type = "nbinomial")
+plot(matings.gof
+    , main = "NBinom model fit on matings")
 ```
 
 (b)	Repeat (a) above, but now plotting log(Matings+1) against Age to approximate a Poisson regression with a log link and avoid problems with the zero counts.
@@ -65,26 +82,57 @@ lines(x = ci, y = c(0.9, 0.9), col = "red", lwd = 3, xpd = TRUE)
 plot(jitter(Matings + 1)~Age, data = eleph, log = "y"
      , ylab = "log(Matings)")
 lines(lowess(eleph$Age, eleph$Matings + 1), col = "blue", lwd = 3)
+
+matings.gof.log <- goodfit(log(matings.tab +1), type = "poisson")
+plot(matings.gof.log
+    , main = "Poisson model fit on log(matings)")
+matings.gof.log <- goodfit(log(matings.tab +1), type = "nbinomial")
+plot(matings.gof.log
+    , main = "NBinom model fit on log(matings)")
 ```
+
+*Goodfit plot appears best with a negative binomial over the log. There is a hint of zero inflation and strange feature of the graph and one wonders if 8 matings has been miscategorised systematically to 9.*
 
 (c)	Fit a linear Poisson regression model for Matings against Age. Interpret the fitted model verbally from a graph of predicted number of matings and/or from the model coefficients. (Hint: Using Age-27 will make the intercept directly interpretable.)
 
 ```{r}
 eleph.glm <- glm(Matings~I(Age-27), data = eleph
                  , family = "poisson")
-coeftest(eleph.glm)
-anova(eleph.glm, test = "Chisq")
+Anova(eleph.glm, test = "Wald")
+```
+
+*These results inform that there is very good evidence to reject the null model. The coefficients and st.err suggest the following:*
+
+```{r}
+Int <- exp(coeftest(eleph.glm))[1,1]
+IntRng <- exp(confint(eleph.glm))[1,]
+Slope <- exp(coeftest(eleph.glm))[2,1]
+SlopeRng <- exp(confint(eleph.glm))[2,]
+```
+
+*The youngest elephants, aged 27, mated on average `r round(IntRng[1],2)` to `r round(IntRng[2],2)` times. Over the 26 year age range (to 52 years of age), this rises to $\approx{}$ `r round(Int, 2)` * `r round(Slope, 2)` (`r round(SlopeRng[1], 2)` to `r round(SlopeRng[2], 2)`)$^{26}$ = `r round(Int * Slope^26, 2)` (`r round(IntRng[1] * SlopeRng[1]^26, 2)` to `r round(IntRng[2] * SlopeRng[2]^26, 2)`)*
+
+```{r}
+g <- ggplot(data = eleph, aes(x = Age, y = I(Matings+1))) +
+  geom_point() + scale_y_log10() + ylab("log(Matings)")
+
+g + stat_smooth(method = glm,
+              method.args = list(family = "poisson")) +
+  ggtitle("Matings by Elephant Age, poisson model fit")
+
+g + stat_smooth(method = glm,
+              method.args = list(family = "quasipoisson")) +
+  ggtitle("Matings by Elephant Age, quasipoisson model fit")
 ```
 
 (d)	Check for nonlinearity in the relationship by using the term poly(Age,2) in a new model. What do you conclude?
 
 ```{r}
 eleph.glm2 <- update(eleph.glm, .~. + I(Age^2))
-coeftest(eleph.glm2)
-anova(eleph.glm2, test = "Chisq")
+Anova(eleph.glm2, test = "Wald")
 ```
 
-*Adding the quadratic age term has dramatically improved the fit.*
+*Adding the quadratic age term does not improve the fit.*
 
 (e)	Assess whether there is any evidence of overdispersion in these data by fitting analogous quasi-Poisson and negative-binomial models.
 
@@ -96,14 +144,183 @@ eleph.glmQ2 <- update(eleph.glmQ, .~. + I(Age^2))
 eleph.glmN <- glm.nb(Matings~I(Age-27), data = eleph)
 eleph.glmN2 <- update(eleph.glmN, .~. + I(Age^2))
 
-coeftest(eleph.glmQ)
-coeftest(eleph.glmQ2)
-coeftest(eleph.glmN)
-coeftest(eleph.glmN2)
-
+anova(eleph.glmQ, eleph.glmQ2, test = "Chisq")
+anova(eleph.glmN, eleph.glmN2, test = "Chisq")
 LRstats(eleph.glm, eleph.glm2
         , eleph.glmQ, eleph.glmQ2
         , eleph.glmN, eleph.glmN2
         , sortby = "BIC")
+```
+
+*BIC prefers the non-quadratic models^2. I'm unsure why LRStats won't estimate for the quasipoisson model. From the anova test, it looks like the quadratic term is only significant in the poisson model, perhaps because the assumption of constant variance is violated.*
+
+## 11.2 
+The data set quine in MASS gives data on absenteeism from schools in rural New South Wales, Australia. 146 children were classified by ethnic background (Eth), age (Age, a factor), Sex, and Learner status (Lrn), and the number of days absent (Days) from school in a particular school year was recorded.
+
+```{r}
+data("quine", package = "MASS")
+```
+
+(a)	Fit the all main-effects model in the Poisson family and examine the tests of these effects using summary() and car::Anova(). Are there any terms that should be dropped according to these tests?
+
+```{r}
+q.glm <- glm(Days~., data = quine, family = "poisson")
+summary(q.glm)
+Anova(q.glm)
+```
+
+*All these coefficients appear to be significant.*
+
+(b)	Re-fit this model as a quasi-Poisson model. Is there evidence of overdispersion? Test for overdispersion formally, using dispersiontest() from AER.
+
+```{r}
+q.glm2 <- update(q.glm, .~., family = "quasipoisson")
+summary(q.glm2)
+phi <- summary(q.glm2)$dispersion
+```
+
+*There is evidence of over dispersion. Fitting the qp has returned a parameter phi which is lower than the var/mean ratio.*
+
+```{r}
+with(quine, c(mean = mean(Days), var = var(Days),
+                ratio = var(Days) / mean(Days), Phi = phi))
+```
+
+*The null hypothesis of poisson variation follows*
+
+```{r}
+dispersiontest(q.glm)
+dispersiontest(q.glm, 2)
+```
+
+*Mean variance plot shows the quasipoisson and neg.bin mean variance curves*
+
+```{r}
+# fittin mean/variance curves
+# include a negbin
+q.nb <- glm.nb(Days~., data = quine)
+th <- q.nb$theta
+q.glm3 <- update(q.glm, .~., family = negative.binomial(th))
+fit.pois <- fitted(q.glm, type = "response")
+fit.qpois <- fitted(q.glm2, type = "response")
+fit.nbin <- fitted(q.glm3, type = "response")
+
+## cutq
+cutq <- function(x, q = 10) {
+  quantile <- cut(x, breaks = quantile(x, probs = (0 : q) / q),
+                  include.lowest = TRUE, labels = 1 : q)
+  quantile
+}
+group <- cutq(fit.pois, q = 10)
+qdat <- aggregate(quine$Days,
+                  list(group),
+                  FUN = function(x) c(mean = mean(x), var = var(x)))
+qdat <- data.frame(qdat$x)
+qdat <- qdat[order(qdat$mean),]
+
+phi <- summary(q.glm2)$dispersion
+qdat$qvar <- phi * qdat$mean
+qdat$nbvar <- qdat$mean + (qdat$mean^2) / th
+
+with(qdat, {
+  plot(var ~ mean, xlab = "Mean number of Days", ylab = "Variance",
+       pch = 16, cex = 1.2, cex.lab = 1.2)
+  abline(h = mean(quine$Days), col = gray(.40), lty = "dotted")
+  lines(mean, qvar, col = "red", lwd = 2)
+  lines(mean, nbvar, col = "blue", lwd = 2)
+  lines(lowess(mean, var), lwd = 2, lty = "dashed")
+  text(10, 25, "Poisson", col = gray(.40))
+  text(30, 300, "quasi-Poisson", col = "red")
+  text(22, 500, "negbin", col = "blue")
+  text(32.5, 600, "lowess")
+})
+```
+
+(c)	Carry out the same significance tests and explain why the results differ from those for the Poisson model.
+
+```{r}
+Anova(q.glm2)
+```
+
+*The coefficients for the quasipoisson are the same but the significance tests give different results. The show the coefficients to be less, or not significant. This is because the standard errors are multiplied $\phi^{-\frac{1}{2}}$. With larger standard errors, the tests for significance require larger residuals to be significant.*
+
+*A quick look at Anova for neg bin model*
+
+```{r}
+Anova(q.glm3)
+```
+
+## 11.3 
+The data set AirCrash in vcdExtra was analyzed in Exercise 5.2 and Exercise 6.3 in relation to the Phase of the flight and Cause of the crash. Additional variables include the number of Fatalities and Year. How does Fatalities depend on the other variables?
+
+```{r}
+data("AirCrash", package = "vcdExtra")
+```
+
+(a)	Use the methods of this chapter to make some exploratory plots relating fatalities to each of the predictors.
+
+```{r, fig.height=4, fig.width=3}
+bwplot(log(Fatalities)~Phase, data = AirCrash
+       , varwidth = TRUE
+       , par.settings = MyLatticeTheme)
+
+bwplot(log(Fatalities)~Cause, data = AirCrash
+       , varwidth = TRUE
+       , par.settings = MyLatticeTheme)
+
+dotplot(log(Fatalities+1)~Year, data = AirCrash
+       , jitter.x = TRUE
+       , horizontal = FALSE
+       , panel = function(x,y, ...) {
+         panel.dotplot(x,y, ...)
+         panel.loess(x, y, family = "symmetric"
+                     , lwd = 3, ...)
+       }
+       , par.settings = MyLatticeTheme
+       , scales = list(x = list(labels = sort(unique(AirCrash$Year))
+                                , rot = 45, cex = 0.6)))
+```
+
+```{r, fig.height=4, fig.width=4.5 }
+spine(Phase~Year, data = AirCrash
+       , xlab = "Year")
+spine(Cause~Year, data = AirCrash
+       , xlab = "Year")
+```
+
+(b)	Fit a main effects poisson regression model for Fatalities, and make effects plots to visualize the model. Which phases and causes result in the largest number of fatalities?
+
+```{r}
+ac.glm <- glm(Fatalities~Phase+Cause+Year, data = AirCrash, family = "poisson")
+plot(allEffects(ac.glm), band.colors = "blue", lwd = 3,
+     ylab = "Number of articles", main = "")
+```
+
+*En route and unknown are the Phases that cause the largest number of fatalities. Likewise for criminal and human error Causes.*
+
+(c)	A linear effect of Year might not be appropriate for these data. Try using a natural spline term, ns(Year, df) to achieve a better, more adequate model.
+
+```{r}
+ac.glm2 <- glm(Fatalities~Phase+Cause+ns(Year,5), data = AirCrash, family = "poisson")
+anova(ac.glm, ac.glm2)
+LRstats(ac.glm, ac.glm2)
+
+plot(allEffects(ac.glm2), band.colors = "blue", lwd = 3,
+     ylab = "Number of articles", main = "")
+```
+
+(d)	Use a model-building tool like add1() or MASS::stepAIC() to investigate whether there are important two-way interactions among the factors and your chosen effect for Year.
+
+```{r}
+add1(ac.glm, .~.^2, test = "Chisq")
+add1(ac.glm2, .~.^2, test = "Chisq")
+```
+
+(e)	Visualize and interpret your final model and write a brief summary to answer the question posed.
+
+```{r}
+ac.glm3 <- update(ac.glm2, .~. + Phase:Cause + Phase:ns(Year, 5) + Cause:ns(Year, 5))
+
+plot(allEffects(ac.glm3), multiline = TRUE)
 ```
 
