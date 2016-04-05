@@ -182,7 +182,7 @@ gg + geom_bar(stat = "identity", colour = "lightgrey") +
 
 On initial visual assessment, the eye is drawn to the mountain of bars representing the 70's and 80's and the relative sparsity from the mid-90's onwards. After 2001 there are only the 4 notable peaks in 2004 (Madrid), 2005 (London), 2011 (Norway) and 2015 (Paris). One can immediately gain a sense that the danger from terrorism from 1970 to the end of the 1990's was much greater than it is now.
 
-In my opinion, the graph is a fairly successful attempt to demonstrate that our current perception and fear of global terrorism is caused by something other than factual measures such as the number of deaths (or number of incidents). Our collective perception may be more a symptom of the tactics of terror or simply the dominant socio-political narrative. This unease we feel causes us to find rationales for ignoring the facts of our recent history and to allow ourselves to believe that now time is as dangerous as now.
+In my opinion, the graph is a fairly successful attempt to demonstrate that our current perception and fear of global terrorism is caused by something other than factual measures such as the number of deaths (or number of incidents). Our collective perception may be more a symptom of the tactics of terror or simply the dominant socio-political narrative. This unease we feel causes us to find rationales for ignoring the facts of our recent history and to allow ourselves to believe that no time is as dangerous as now.
 
 My reposting of the original graphic on Facebook drew the attention of one particular friend who asserted that the graph wasn't making a valid comparison to current Islamist terrorism because it "includes Northern Ireland in the 1970s and ETA in the 1980s which is not quite the same."
 
@@ -478,7 +478,7 @@ text(2.4, 4, "All Count\n1970-2015", pos = 2)
 text(2.6, 4, "Since GFA\n2001-2015", pos = 4)
 ```
 
-Accounting for all the months when there were no incidents, it's clear that the localised terrorists were the more deadly group in the period 1970-2000, by the sheer number of incidents, even though international terrorists carried out a number of airplane bombing atrocities, these were no more than a handful.
+Accounting for all the months when there were no incidents, it's clear that the localised terrorists were the more deadly group in the period 1970-2000, by the sheer number of incidents even though international terrorists carried out a number of airplane bombing atrocities, these were no more than a handful.
 
 The threat from international terrorists, if measured in a rate of fatalities over a given time period, has remained constant and low.
 
