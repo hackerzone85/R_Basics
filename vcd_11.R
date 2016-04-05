@@ -14,6 +14,7 @@ library(pscl)
 library(mgcv)
 library(rsm)
 library(colorspace)
+library(heplots)
 theme_set(theme_bw())  # set default ggplot theme
 
 data("PhdPubs", package = "vcdExtra")
@@ -504,13 +505,11 @@ nmes2 <- NMES1988[, c(1 : 4, 6 : 8, 13, 15, 18)]
 names(nmes2)[1 : 4]     # responses
 names(nmes2)[-(1 : 4)]  # predictors
 
-## ----nmes4-mlm-----------------------------------------------------------
 clog <- function(x) log(x + 1)
 nmes.mlm <- lm(clog(cbind(visits, nvisits, ovisits, novisits)) ~ .,
                data = nmes2)
 
-## ----nmes4-hepairs, h=8, w=8, out.width='.8\\textwidth', cap='Pairwise HE plots for all responses in the nmes2 data.', fig.pos='!htb'----
-library(heplots)
+
 vlabels <- c("Physician\noffice visits", 
              "Non-physician\n office visits",
              "Physician\nhospital visits", 
@@ -518,7 +517,6 @@ vlabels <- c("Physician\noffice visits",
 pairs(nmes.mlm, factor.means = "health", 
       fill = TRUE, var.labels = vlabels)
 
-## ----nmes4-reshape-------------------------------------------------------
 vars <- colnames(nmes2)[1 : 4]
 nmes.long <- reshape(nmes2,
                      varying = vars,
@@ -528,7 +526,6 @@ nmes.long <- reshape(nmes2,
                      direction = "long",
                      new.row.names = 1 : (4 * nrow(nmes2)))
 
-## ----nmes4-long, size='footnotesize'-------------------------------------
 nmes.long <- nmes.long[order(nmes.long$id),]
 nmes.long <- transform(nmes.long,
                        practitioner = ifelse(type %in% c("visits", "ovisits"),
@@ -537,25 +534,17 @@ nmes.long <- transform(nmes.long,
                        hospf = cutfac(hospital, c(0 : 2, 8)),
                        chronicf = cutfac(chronic))
 
-## ------------------------------------------------------------------------
 xtabs(visit ~ practitioner + place, data = nmes.long)
-
-## ----nmes4-fourfold1, h=6, w=6, out.extra='trim=0 130 0 130,clip', out.width='\\textwidth', cap='Fourfold displays for the association between practitioner and place in the nmes.long data, conditioned on health status.'----
-library(vcdExtra)
 fourfold(xtabs(visit ~ practitioner + place + health, data = nmes.long),
          mfrow=c(1,3))
 loddsratio(xtabs(visit ~ practitioner + place + health, 
                  data = nmes.long))
-
-## ----nmes4-fourfold2, h=8, w=8, out.width='\\textwidth', cap='Fourfold displays for the association between practitioner and place in the nmes.long data, conditioned on gender, insurance, and number of chronic conditions. Rows are levels of chronic; columns are the combinations of gender and insurance.', fig.pos='!htb'----
 tab <- xtabs(visit ~ practitioner + place + gender + 
                insurance + chronicf,
              data = nmes.long)
 fourfold(tab, mfcol=c(4,4), varnames=FALSE)
 
-## ----nmes4-loddsratio, h=5, w=9, out.width='.85\\textwidth', cap='Plot of log odds ratios with 1 standard error bars for the association between practitioner and place, conditioned on gender, insurance, and number of chronic conditions. The horizontal lines show the null model (longdash) and the mean (dot--dash) of the log odds ratios.'----
 lodds.df <- as.data.frame(loddsratio(tab))
-library(ggplot2)
 ggplot(lodds.df, aes(x = chronicf, y = LOR,
                      ymin = LOR - 1.96 * ASE, ymax = LOR + 1.96 * ASE,
                      group = insurance, color = insurance)) +
@@ -569,28 +558,17 @@ ggplot(lodds.df, aes(x = chronicf, y = LOR,
        y = "log odds ratio (physician|place)") +
   theme_bw() + theme(legend.position = c(0.1, 0.9)) 
 
-## ----nmes4-lodds-mod-----------------------------------------------------
 lodds.mod <- lm(LOR ~ (gender + insurance + chronicf)^2,
                 weights = 1 / ASE^2, data = lodds.df)
 anova(lodds.mod)
 
-## ----load-VGAM, echo=FALSE-----------------------------------------------
-library(VGAM)
-
-## ----nmes5-nbin, cache=TRUE----------------------------------------------
 nmes2.nbin <- vglm(cbind(visits, nvisits, ovisits, novisits) ~ .,
                    data = nmes2, family = negbinomial)
-
-## ----nmes5-coef1---------------------------------------------------------
-# coefficients for visits
 coef(nmes2.nbin, matrix = TRUE)[,c(1, 2)]
 # theta for visits
 exp(coef(nmes2.nbin, matrix = TRUE)[1, 2])
-
-## ----nmes5-coef2---------------------------------------------------------
 coef(nmes2.nbin, matrix = TRUE)[,c(1, 3, 5, 7)]
 
-## ----nmes5-clist---------------------------------------------------------
 clist <- constraints(nmes2.nbin, type = "term")
 clist$hospital[c(1, 3, 5, 7),]
 
@@ -600,28 +578,19 @@ clist2$hospital <- cbind(rowSums(clist$hospital))
 clist2$chronic  <- cbind(rowSums(clist$chronic))
 clist2$hospital[c(1, 3, 5, 7), 1, drop = FALSE]
 
-## ----nmes5-nbin2, cache=TRUE---------------------------------------------
 nmes2.nbin2 <- vglm(cbind(visits, nvisits, ovisits, novisits) ~ ., 
                     data = nmes2, constraints = clist2,
                     family = negbinomial(zero = NULL))
 
-## ----nmes5-coef3---------------------------------------------------------
 coef(nmes2.nbin2, matrix = TRUE)[,c(1, 3, 5, 7)]
-
-## ----nmes5-lrtest--------------------------------------------------------
 lrtest(nmes2.nbin, nmes2.nbin2)
-
-## ----nmes5-linhyp1-------------------------------------------------------
 lh <- paste("hospital:", 1 : 3, " = ", "hospital:", 2 : 4, sep="")
 lh
-
-## ----nmes5-foxkludge, include=FALSE--------------------------------------
 if (packageVersion("car") < "2.1.1") {
   df.residual.vglm <- function(object, ...) object@df.residual
   vcov.vglm <- function(object, ...) vcovvlm(object, ...)
   coef.vglm <- function(object, ...) coefvlm(object, ...)
 }
 
-## ----nmes5-linhyp2-------------------------------------------------------
 car::linearHypothesis(nmes2.nbin, lh)
 

@@ -1,0 +1,109 @@
+```{r prologue, results='hide', echo=FALSE}
+knitr::opts_chunk$set(warning = FALSE
+                      , message = FALSE
+                      , echo = FALSE
+                      )
+```
+
+```{r setup}
+require(vcd)
+require(vcdExtra)
+require(MASS)
+require(lmtest)
+```
+
+---
+title: "VCD 11 Exercises"
+author: "Julian Hatwell"
+date: "5 April 2016"
+output: html_document
+---
+
+## 11.1 
+Poole (1989) studied the mating behavior of elephants over 8 years in Amboseli National Park, Kenya. A focal aspect of the study concerned the mating success of males in relation to age, since larger males tend to be more successful in mating. Her data were used by Ramsey and Schafer (2002, Chapter 22 ) as a case study, and are contained in the Sleuth2 (Ramsey et al., 2012) package (Ramsey et al., 2012) as case2201.
+
+For convenience, rename this to elephants, and study the relation between Age (at the beginning of the study) and number of successful Matings for the 41 adult male elephants observed over the course of this study, ranging in age from 27-52.
+
+```{r}
+data("case2201", package = "Sleuth2")
+eleph <- case2201
+```
+
+(a)	Create some exploratory plots of Matings against Age in the styles illustrated in this chapter. To do this successfully, you will have to account for the fact that Matings has a range of only 0-9, and use some smoothing methods to show the trend.
+
+```{r}
+matings.fac <- factor(eleph$Matings, levels = 0:9)
+matings.tab <- table(matings.fac)
+
+with(eleph, c(mean = mean(Matings), var = var(Matings),
+                ratio = var(Matings) / mean(Matings)))
+
+barplot(matings.tab, xlab = "Number of matings"
+        , ylab = "Frequency"
+        , col = "lightblue")
+abline(v = mean(eleph$Matings), col = "red", lwd = 3)
+ci <- mean(eleph$Matings) +
+  c(-1, 1) * sd(eleph$Matings)
+lines(x = ci, y = c(-0.1, -0.1), col = "red", lwd = 3, xpd = TRUE)
+
+plot(jitter(Matings)~Age, data = eleph
+     , ylab = "log(Matings)")
+lines(lowess(eleph$Age, eleph$Matings), col = "blue", lwd = 3)
+```
+
+(b)	Repeat (a) above, but now plotting log(Matings+1) against Age to approximate a Poisson regression with a log link and avoid problems with the zero counts.
+
+```{r}
+barplot(matings.tab + 1, ylab = "log(Frequency+1)"
+        , xlab = "Number of matings"
+        , col = "lightblue", log = "y")
+abline(v = mean(eleph$Matings), col = "red", lwd = 3)
+ci <- mean(eleph$Matings) +
+  c(-1, 1) * sd(eleph$Matings)
+lines(x = ci, y = c(0.9, 0.9), col = "red", lwd = 3, xpd = TRUE)
+
+plot(jitter(Matings + 1)~Age, data = eleph, log = "y"
+     , ylab = "log(Matings)")
+lines(lowess(eleph$Age, eleph$Matings + 1), col = "blue", lwd = 3)
+```
+
+(c)	Fit a linear Poisson regression model for Matings against Age. Interpret the fitted model verbally from a graph of predicted number of matings and/or from the model coefficients. (Hint: Using Age-27 will make the intercept directly interpretable.)
+
+```{r}
+eleph.glm <- glm(Matings~I(Age-27), data = eleph
+                 , family = "poisson")
+coeftest(eleph.glm)
+anova(eleph.glm, test = "Chisq")
+```
+
+(d)	Check for nonlinearity in the relationship by using the term poly(Age,2) in a new model. What do you conclude?
+
+```{r}
+eleph.glm2 <- update(eleph.glm, .~. + I(Age^2))
+coeftest(eleph.glm2)
+anova(eleph.glm2, test = "Chisq")
+```
+
+*Adding the quadratic age term has dramatically improved the fit.*
+
+(e)	Assess whether there is any evidence of overdispersion in these data by fitting analogous quasi-Poisson and negative-binomial models.
+
+```{r}
+eleph.glmQ <- glm(Matings~I(Age-27), data = eleph
+                 , family = "quasipoisson")
+eleph.glmQ2 <- update(eleph.glmQ, .~. + I(Age^2))
+
+eleph.glmN <- glm.nb(Matings~I(Age-27), data = eleph)
+eleph.glmN2 <- update(eleph.glmN, .~. + I(Age^2))
+
+coeftest(eleph.glmQ)
+coeftest(eleph.glmQ2)
+coeftest(eleph.glmN)
+coeftest(eleph.glmN2)
+
+LRstats(eleph.glm, eleph.glm2
+        , eleph.glmQ, eleph.glmQ2
+        , eleph.glmN, eleph.glmN2
+        , sortby = "BIC")
+```
+
