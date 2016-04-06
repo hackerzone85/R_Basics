@@ -437,11 +437,57 @@ for (f in fmlas) {
 }
 ```
 
-
 (b)	Fit a main-effects Poisson GLM to these data and test the terms using Anova() from the car package.
+
+```{r}
+cor.glm <- glm(count~., data = Cormorants, family = poisson)
+summary(cor.glm)
+Anova(cor.glm)
+```
 
 (c)	Interpret this model using an effects plot.
 
+```{r}
+cor.eff <- allEffects(cor.glm)
+plot(cor.eff[1:2], band.colors = "blue")
+plot(cor.eff[3:4], band.colors = "blue")
+plot(cor.eff[5:6], band.colors = "blue")
+```
+
+*tree_health has no effect and is not shown.*
+
 (d)	Investigate whether the effect of week should be treated as linear in the model. You could try using a polynomial term like poly(week, degree) or perhaps better, using a natural spline term like ns(week, df) from the splines package.
 
+```{r}
+cor.glm_p <- update(cor.glm, .~.-week+poly(week,3))
+cor.glm_ns <- update(cor.glm, .~.-week+ns(week,3))
+LRstats(cor.glm, cor.glm_p, cor.glm_ns)
+```
+
+*These are not significantly different.*
+
 (e)	Test this model for overdispersion, using either a quasipoisson family or dispersiontest() in AER.
+
+```{r}
+dispersiontest(cor.glm)
+dispersiontest(cor.glm, 2)
+dispersiontest(cor.glm_ns)
+dispersiontest(cor.glm_ns, 2)
+```
+
+*Annoyingly, test 1 fails and test 2 indicates overdispersion.*
+
+*I will also try with a quasipoisson fit.*
+
+```{r}
+sum(residuals(cor.glm, type = "pearson")^2)/cor.glm$df.residual
+
+sum(residuals(cor.glm_ns, type = "pearson")^2)/cor.glm_ns$df.residual
+
+cor.glm_qp <- update(cor.glm, family = quasipoisson)
+summary(cor.glm_qp)$dispersion
+
+cor.glm.qp <- update(cor.glm_ns, family = quasipoisson)
+summary(cor.glm.qp)$dispersion
+```
+
