@@ -261,13 +261,15 @@ data("AirCrash", package = "vcdExtra")
 (a)	Use the methods of this chapter to make some exploratory plots relating fatalities to each of the predictors.
 
 ```{r, fig.height=4, fig.width=3}
-bwplot(log(Fatalities)~Phase, data = AirCrash
+bwplot(log(Fatalities+1)~Phase, data = AirCrash
        , varwidth = TRUE
-       , par.settings = MyLatticeTheme)
+       , par.settings = MyLatticeTheme
+       , scale = list(x = list(rot = 45)))
 
-bwplot(log(Fatalities)~Cause, data = AirCrash
+bwplot(log(Fatalities+1)~Cause, data = AirCrash
        , varwidth = TRUE
-       , par.settings = MyLatticeTheme)
+       , par.settings = MyLatticeTheme
+       , scale = list(x = list(rot = 45)))
 
 dotplot(log(Fatalities+1)~Year, data = AirCrash
        , jitter.x = TRUE
@@ -279,19 +281,21 @@ dotplot(log(Fatalities+1)~Year, data = AirCrash
        }
        , par.settings = MyLatticeTheme
        , scales = list(x = list(labels = sort(unique(AirCrash$Year))
-                                , rot = 45, cex = 0.6)))
+                                , rot = 45, cex = 0.4)))
 ```
 
-*There is definitely a structured association between Year and the other two predictors.*
+*There is definitely a structured association between Year and the other two predictors, as can be seen in the spinograms:*
 
-```{r, fig.height=4, fig.width=4.5, eval = FALSE}
-spine(Phase~Year, data = AirCrash
-       , xlab = "Year", yaxlabels = ""
+```{r, fig.height=4, fig.width=4.5}
+cdplot(Phase~Year, data = AirCrash
+       , xlab = "Year"
        , main = "Phase by Year Spinogram")
-spine(Cause~Year, data = AirCrash
-       , xlab = "Year", yaxlabels = ""
+cdplot(Cause~Year, data = AirCrash
+       , xlab = "Year"
        , main = "Phase by Year Spinogram")
 ```
+
+*Phase and Cause are associated, as can be seen here:*
 
 ```{r, fig.height=4, fig.width=9}
 ggplot(AirCrash, aes(x = Cause, y = Fatalities)) +
@@ -309,22 +313,37 @@ ggplot(AirCrash, aes(x = Cause, y = Fatalities)) +
 
 (b)	Fit a main effects poisson regression model for Fatalities, and make effects plots to visualize the model. Which phases and causes result in the largest number of fatalities?
 
-```{r}
+```{r, fig.height=4, fig.width=3}
 ac.glm <- glm(Fatalities~Phase+Cause+Year, data = AirCrash, family = "poisson")
-plot(allEffects(ac.glm), band.colors = "blue", lwd = 3,
-     ylab = "Number of articles", main = "")
+
+plot(allEffects(ac.glm)[1], band.colors = "blue", lwd = 3,
+     ylab = "Fatalities", rotx = 30
+          , ci.style = "bars")
+plot(allEffects(ac.glm)[2], band.colors = "blue", lwd = 3,
+     ylab = "Fatalities", rotx = 30
+          , ci.style = "bars")
+plot(allEffects(ac.glm)[3], band.colors = "blue", lwd = 3,
+     ylab = "Fatalities"
+          , ci.style = "bands")
 ```
 
 *En route and unknown are the Phases that cause the largest number of fatalities. Likewise for criminal and human error Causes.*
 
 (c)	A linear effect of Year might not be appropriate for these data. Try using a natural spline term, ns(Year, df) to achieve a better, more adequate model.
 
-```{r}
+```{r, fig.height=4, fig.width=3}
 ac.glm2 <- glm(Fatalities~Phase+Cause+ns(Year,5), data = AirCrash, family = "poisson")
 anova(ac.glm, ac.glm2)
 
-plot(allEffects(ac.glm2), band.colors = "blue", lwd = 3,
-     ylab = "Number of articles", main = "")
+plot(allEffects(ac.glm2)[1], band.colors = "blue", lwd = 3
+     , ylab = "Fatalities", rotx = 30
+     , ci.style = "bars")
+plot(allEffects(ac.glm2)[2], band.colors = "blue", lwd = 3
+     , ylab = "Fatalities", rotx = 30
+     , ci.style = "bars")
+plot(allEffects(ac.glm2)[3], band.colors = "blue", lwd = 3
+     , ylab = "Fatalities"
+     , ci.style = "bands")
 ```
 
 (d)	Use a model-building tool like add1() or MASS::stepAIC() to investigate whether there are important two-way interactions among the factors and your chosen effect for Year.
@@ -343,20 +362,22 @@ ac.glm3 <- update(ac.glm2, .~. + Phase:Cause + Phase:ns(Year, 5) + Cause:ns(Year
 
 ac.eff <- allEffects(ac.glm3
                      , xlevels = list(
-                       Year = c(1995, 2000
-                                , 2005, 2010
-                                , 2015)))
+                       Year = c(2005, 2006)))
 plot(ac.eff, "Phase:Cause"
-     , multiline = TRUE
-     , par.settings = MyLatticeTheme)
+      , multiline = TRUE
+      , type = "response"
+     , ci.style = "none"
+      , par.settings = MyLatticeTheme)
 
 plot(ac.eff, "Phase:ns(Year,5)"
       , multiline = TRUE
+      , type = "response"
       , par.settings = MyLatticeTheme
      )
 
 plot(ac.eff, "Cause:ns(Year,5)"
       , multiline = TRUE
+      , type = "response"
       , par.settings = MyLatticeTheme
      )
 ```
