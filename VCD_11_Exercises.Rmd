@@ -388,3 +388,60 @@ residualPlot(ac.glm2, type = "rstudent", groups = AirCrash$Phase)
 influencePlot(ac.glm)
 ```
 
+## 11.4 
+Male double-crested cormorants use advertising behavior to attract females for breeding. The Cormorants data set in vcdExtra gives some results from a study by Meagan Mc Rae (2015) on counts of advertising males observed two or three times a week at six stations in a tree-nesting colony for an entire breeding season. The number of advertising birds was counted and these observations were classified by characteristics of the trees and nests. The goal was to determine how this behavior varies temporally over the season and spatially over observation stations, as well as with characteristics of nesting sites. The response variable is count and other predictors are shown below. See help(Cormorants, package=“vcdExtra”) for further details.
+
+```{r}
+set.seed(123)
+data("Cormorants", package = "vcdExtra")
+some(Cormorants)
+nac <- is.na(Cormorants$category)
+Cormorants$category[nac] <- "Chicks Present"
+with(Cormorants, {
+  pre <<- range(week[category == "Pre"])
+  inc <<- range(week[category == "Incubation"])
+  chick <<- range(week[category == "Chicks Present"])
+})
+
+```
+
+(a) Using the methods illustrated in this chapter, make some exploratory plots of the number of advertising birds against week in the breeding season, perhaps stratified by another predictor, like tree height, nest condition, or observation station. To see anything reasonable, you should plot count on a log (or square root) scale, jitter the points, and add smoothed curves. The variable category breaks the weeks into portions of the breeding season, so adding vertical lines separating those will be helpful for interpretation.
+
+```{r}
+barplot(table(Cormorants$count), ylab = "log(count)"
+        , xlab = "Count of Cormorants", col = "lightblue"
+        , log = "y"
+        , main = "Frequency of Cormorants count")
+abline(v = mean(Cormorants$count), col = "red", lwd = 3)
+ci <- mean(Cormorants$count) + c(-1, 1) * sd(Cormorants$count)
+lines(x = ci, y = c(0.9, 0.9), col = "red", lwd = 3, xpd = TRUE)
+exploraplot <- function(fmla) {
+  xyplot(fmla, data = Cormorants
+       , jitter.x = TRUE, jitter.y = TRUE
+       , panel = function(x, y, ...) {
+         panel.xyplot(x, y, pch = 1, ...)
+         panel.abline(v = c(pre[2], inc[2]) + 0.5)
+         panel.loess(x, y, span = 7/11, degree = 0
+                     , col = "magenta", lwd = 2, ...)
+       }
+       , scales = list(
+         y = list(log = TRUE)
+        )
+       , par.settings = MyLatticeTheme)
+}
+
+fmlas <- paste("jitter(count, amount = 0.25)~week |",names(Cormorants)[3:7])
+for (f in fmlas) {
+  trel <- exploraplot(as.formula(f))
+  print(trel)
+}
+```
+
+
+(b)	Fit a main-effects Poisson GLM to these data and test the terms using Anova() from the car package.
+
+(c)	Interpret this model using an effects plot.
+
+(d)	Investigate whether the effect of week should be treated as linear in the model. You could try using a polynomial term like poly(week, degree) or perhaps better, using a natural spline term like ns(week, df) from the splines package.
+
+(e)	Test this model for overdispersion, using either a quasipoisson family or dispersiontest() in AER.
