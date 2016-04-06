@@ -17,6 +17,7 @@ require(AER)
 require(lattice)
 require(effects)
 require(splines)
+library(gam)
 theme_set(theme_bw())  # set default ggplot theme
 
 source("https://raw.githubusercontent.com/julianhatwell/R_Themes/master/simpleTheme.R")
@@ -281,11 +282,29 @@ dotplot(log(Fatalities+1)~Year, data = AirCrash
                                 , rot = 45, cex = 0.6)))
 ```
 
-```{r, fig.height=4, fig.width=4.5 }
+*There is definitely a structured association between Year and the other two predictors.*
+
+```{r, fig.height=4, fig.width=4.5, eval = FALSE}
 spine(Phase~Year, data = AirCrash
-       , xlab = "Year")
+       , xlab = "Year", yaxlabels = ""
+       , main = "Phase by Year Spinogram")
 spine(Cause~Year, data = AirCrash
-       , xlab = "Year")
+       , xlab = "Year", yaxlabels = ""
+       , main = "Phase by Year Spinogram")
+```
+
+```{r, fig.height=4, fig.width=9}
+ggplot(AirCrash, aes(x = Cause, y = Fatalities)) +
+  geom_boxplot(outlier.size = 3
+               , aes(fill = Cause)
+               , varwidth = TRUE
+               , alpha = 0.2) +
+  geom_jitter(position = position_jitter(width = 0.2)
+              , alpha = 0.25) +
+  facet_grid(. ~ Phase) +
+  scale_y_log10(breaks = c(1, 2, 5, 10, 20, 50, 100, 200)) +
+  theme(legend.position = "none", axis.text.x  = element_text(angle=90)) +
+  labs(y = "Fatalities (log scale)")
 ```
 
 (b)	Fit a main effects poisson regression model for Fatalities, and make effects plots to visualize the model. Which phases and causes result in the largest number of fatalities?
@@ -303,7 +322,6 @@ plot(allEffects(ac.glm), band.colors = "blue", lwd = 3,
 ```{r}
 ac.glm2 <- glm(Fatalities~Phase+Cause+ns(Year,5), data = AirCrash, family = "poisson")
 anova(ac.glm, ac.glm2)
-LRstats(ac.glm, ac.glm2)
 
 plot(allEffects(ac.glm2), band.colors = "blue", lwd = 3,
      ylab = "Number of articles", main = "")
@@ -316,11 +334,36 @@ add1(ac.glm, .~.^2, test = "Chisq")
 add1(ac.glm2, .~.^2, test = "Chisq")
 ```
 
+*All these interaction terms seem to be important.*
+
 (e)	Visualize and interpret your final model and write a brief summary to answer the question posed.
 
-```{r}
+```{r, fig.height=4}
 ac.glm3 <- update(ac.glm2, .~. + Phase:Cause + Phase:ns(Year, 5) + Cause:ns(Year, 5))
 
-plot(allEffects(ac.glm3), multiline = TRUE)
+ac.eff <- allEffects(ac.glm3
+                     , xlevels = list(
+                       Year = c(1995, 2000
+                                , 2005, 2010
+                                , 2015)))
+plot(ac.eff, "Phase:Cause"
+     , multiline = TRUE
+     , par.settings = MyLatticeTheme)
+
+plot(ac.eff, "Phase:ns(Year,5)"
+      , multiline = TRUE
+      , par.settings = MyLatticeTheme
+     )
+
+plot(ac.eff, "Cause:ns(Year,5)"
+      , multiline = TRUE
+      , par.settings = MyLatticeTheme
+     )
+```
+
+```{r, fig.height=4, fig.width=3}
+residualPlot(ac.glm2, type = "rstudent", groups = AirCrash$Cause)
+residualPlot(ac.glm2, type = "rstudent", groups = AirCrash$Phase)
+influencePlot(ac.glm)
 ```
 
