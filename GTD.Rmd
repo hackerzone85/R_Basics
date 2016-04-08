@@ -92,8 +92,8 @@ gtdgroups$tergroup == "Unknown"
 gtdgroups <- rbind(gtdgroups, list(2015, 11, "Paris Attacks", 130))
 gtdgroups$tergroup <- make.names(gtdgroups$tergroup)
 
-load("C:\\Dev\\Study\\R\\R_Basics\\tervars.RData")
-#load("D:\\github\\R_Basics\\tervars.RData")
+#load("C:\\Dev\\Study\\R\\R_Basics\\tervars.RData")
+load("D:\\github\\R_Basics\\tervars.RData")
 tervars <- tervars %>% mutate(tergroup = make.names(tergroup)) 
 gtdgroups <- left_join(gtdgroups, tervars) %>%
 mutate(tergroup = factor(tergroup)
@@ -209,8 +209,13 @@ gtf.nlm <- glm(fatalities~bs(nMonthsSinceJan1970
                , data = nfatm
                , family = negative.binomial(theta = unlist(nfatc.nbin$par)[1], link=log))
 
-gtf.hur <- hurdle(fatalities~nMonthsSinceJan1970
+gtf.hur <- countreg::hurdle(fatalities~nMonthsSinceJan1970
                , data = nfatm, dist = "negbin", zero.dist = "negbin")
+
+z.cont <- zeroinfl.control(start = gtf.hur$start)
+gtf.znb <- countreg::zeroinfl(fatalities~nMonthsSinceJan1970
+               , data = nfatm, dist = "negbin", zero.dist = "negbin"
+               , control = z.cont)
 ```
 
 ```{r yfatNbinomGLM}
@@ -221,9 +226,13 @@ gtf.nlm2 <- glm(fatalities~ns(nMonthsSinceJan1970, knots = c(150, 300))
                 , data = yfatm
                 , family = negative.binomial(theta = unlist(yfatc.nbin$par)[1], link=log))
 
-gtf.hur2 <- hurdle(fatalities~nMonthsSinceJan1970
+gtf.hur2 <- countreg::hurdle(fatalities~nMonthsSinceJan1970
+               , data = yfatm, dist = "negbin", zero.dist = "negbin")
+
+z.cont <- zeroinfl.control(start = gtf.hur2$start)
+gtf.znb2 <- countreg::zeroinfl(fatalities~nMonthsSinceJan1970
                , data = yfatm, dist = "negbin", zero.dist = "negbin"
-               , link = "log")
+               , control = z.cont)
 ```
 
 ## Introduction
@@ -389,7 +398,7 @@ Firstly, a look at the localised groups:
 
 ```{r nfatNbinomGLMplot, fig.show='show', fig.height=4, fig.width=4}
 gtf.glm.preds <- predict(gtf.glm, newdata = yrmnth.grid, se = TRUE)
-gtf.hur.preds <- data.frame(fit = predict(gtf.hur, newdata = yrmnth.grid, type = "response"))
+gtf.hur.preds <- data.frame(fit = predict(gtf.znb, newdata = yrmnth.grid, type = "response"))
 
 gtf.hur.preds <- within(gtf.hur.preds, {
   ci.upr <- fit + 1.96 * gtf.glm.preds$se.fit
@@ -433,7 +442,7 @@ text(c(128,499), log(c(85,77)), pos = c(4,1), c("Bologna, 1980", "Norway, 2011")
 legend("bottomleft"
        , inset = c(0.15, 0)
        , legend = c("log(fatalities)"
-                   , "hurdle fit"
+                   , "zinf fit"
                    , "basis func")
        , cex = 0.6
        , col = c(intextCols[1], intextCols[1], "aquamarine2")
@@ -455,7 +464,7 @@ I continue along the same lines for the international extremist terror threat:
 
 ```{r yfatNbinomGLMplot, fig.show='show', fig.height=4, fig.width=4}
 gtf.glm.preds <- predict(gtf.glm2, newdata = yrmnth.grid, se = TRUE)
-gtf.hur.preds <- data.frame(fit = predict(gtf.hur2, newdata = yrmnth.grid, type = "response"))
+gtf.hur.preds <- data.frame(fit = predict(gtf.znb2, newdata = yrmnth.grid, type = "response"))
 
 gtf.hur.preds <- within(gtf.hur.preds, {
   ci.upr <- fit + 1.96 * gtf.glm.preds$se.fit
@@ -497,7 +506,7 @@ with(gtf.hur.preds
 lines(1:552, log(gtf.hur.preds$fit+1), col = intextCols[2], lwd = 3)
 
 legend("bottomright", legend = c("log(fatalities)"
-                              , "hurdle fit"
+                              , "zinf fit"
                               , "nspline")
        , inset = c(0.1, 0.4)
        , cex = 0.6
@@ -552,7 +561,7 @@ text(c(1,16,5,19), log(c(55, 60, 88, 270))
          , "Pan Am 103"))
 ```
 
-Here we see a mostly flat trend in the in the 1970's to 90's followed by a steady decline. It's the same trend as the non-International group except it starts from a lower base. 
+Here we see a shallow rise in the in the 1970's to 90's followed by a steady decline to the present day with very low fatality rates. 
 
 There is a majority of low level attacks with a small number of very serious incidents involving aeroplane bombings in the 70's and 80's, the public transport suicide bombings in Madrid and London ('04 and '05) and the death cell that attacked Paris last year.
 
@@ -683,7 +692,7 @@ countreg::rootogram(gtn_znb, max = 50
                     , xlab = "fatalities (non-international)")
 ```
 
-Hiere is the international data fitted with linear negative binomial, hurdle and zero-inflated poisson models:
+Here is the international data fitted with linear negative binomial, hurdle and zero-inflated poisson models:
 
 ```{r yfatRootFits, fig.show='show', fig.height=4, fig.width=3}
 gty_hnb <- hurdle(fatalities~nMonthsSinceJan1970
@@ -700,4 +709,16 @@ countreg::rootogram(gty_znb, max = 50
                     , xlab = "fatalities (international)")
 ```
 
-There's not much to choose between the latter two in each case. Hurdle seems more intuitive because all the zeros are structural. The data has already been filtered to include only incidents where there was 1 or more fatality, so all the zeros for fatalities come from the months without incident.
+There's not much to choose between the latter two in each case. Vuong's non-nested hypothesis test is useful here:
+
+```{r vuongTest, results='show'}
+require(pscl)
+cat("Generic hurdle and zero infl fits to the data. Non-international, then international")
+vuong(gtn_hnb, gtn_znb)
+vuong(gty_hnb, gty_znb)
+cat("Final hurdle and zero infl fits to the data, using parameters discovered from model fitting process. Non-international, then international")
+vuong(gtf.hur, gtf.znb)
+vuong(gtf.hur2, gtf.znb2)
+```
+
+*Negative values favour model 2, in the sequence. My test for the non-international doesn't give a significant result and for International groups favours model 2, zero inflated rather than hurdle.*

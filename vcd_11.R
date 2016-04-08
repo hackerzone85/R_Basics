@@ -228,6 +228,8 @@ gpairs(CodParasites[,c(1:4, 7)],
        diag.pars = list(fontsize = 16),
        mosaic.pars = list(gp = shading_Friendly))
 
+ggpairs(CodParasites[,c(1:4, 7)])
+
 cp.tab <- xtabs(~ area + year + factor(is.na(prevalence) |
                                          prevalence == "yes"),
                 data = CodParasites)
