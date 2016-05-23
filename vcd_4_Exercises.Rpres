@@ -75,7 +75,7 @@ cat("conf int", ftf$conf.int)
 cat("estimate", ftf$estimate)
 ```
 
-*Note the enormous confidence interval, which does not contain zero. Odds ration is slightly smaller than the non-exact estimate.*
+*Note the enormous confidence interval, which does not contain zero. Odds ratio is slightly smaller than the non-exact estimate.*
 
 4.1 (e)
 ======================================

@@ -9,7 +9,7 @@ fluctile(hec)
 data("Mental", package = "vcdExtra")
 mental <- xtabs(Freq ~ ses + mental, data = Mental)
 spineplot(mental)
-fluctile(hec)
+fluctile(mental)
 
 Berkeley <- margin.table(UCBAdmissions, 2:1)
 library(gmodels)

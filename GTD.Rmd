@@ -92,8 +92,8 @@ gtdgroups$tergroup == "Unknown"
 gtdgroups <- rbind(gtdgroups, list(2015, 11, "Paris Attacks", 130))
 gtdgroups$tergroup <- make.names(gtdgroups$tergroup)
 
-#load("C:\\Dev\\Study\\R\\R_Basics\\tervars.RData")
-load("D:\\github\\R_Basics\\tervars.RData")
+load("C:\\Dev\\Study\\R\\R_Basics\\tervars.RData")
+#load("D:\\github\\R_Basics\\tervars.RData")
 tervars <- tervars %>% mutate(tergroup = make.names(tergroup)) 
 gtdgroups <- left_join(gtdgroups, tervars) %>%
 mutate(tergroup = factor(tergroup)
@@ -627,7 +627,7 @@ cats
 
 ### The plot trend lines
 
-The main trend lines were added using a hurdle model. Traditional linear models would be dragged downwards on the Y axis by the prevalence of zeros in the data, giving too low an estimate. The hurdle is robust to this type of data.
+The main trend lines were added using a zero inflated model. Traditional linear models would be dragged downwards on the Y axis by the prevalence of zeros in the data, giving too low an estimate among other undesirable characteristics. The zero inflated model is robust to this type of data.
 
 In the non-international plot, a secondary line is created from a basis function with knots that follow the non-linear ups and downs in historical trends.
 
