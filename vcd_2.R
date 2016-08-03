@@ -5,9 +5,9 @@ ds <- datasets(package = c("vcd", "vcdExtra"))
 str(ds)
 with(ds, table(Package, class))
 
-xtabs(~ Treatment + Improved
+(art <- xtabs(~ Treatment + Improved
       , data = Arthritis
-      , subset = Sex == "Female")
+      , subset = Sex == "Female"))
 
 mosaic(art, gp = shading_Friendly)
 mosaic(art, gp = shading_max)
